@@ -53,6 +53,17 @@ describe("classifyEdits", () => {
     })]);
   });
 
+  it("reads a day-only change as a correction of the whole cited date", () => {
+    // Found on production: "October 12, 2026" → "October 19, 2026" diffs to "12," → "19,", a bare
+    // number that matches no fact, so the rep's fix was refused instead of proposed.
+    const d: Draft = { subject: "s", claims: [c("call", "Let's meet the week of October 12, 2026.", ["next"])] };
+    const next = fact("next", "Security review call, week of October 12, 2026");
+    const r = classifyEdits(diffBody(d, "Let's meet the week of October 19, 2026."), d, [next]);
+    expect(r.classified).toEqual([expect.objectContaining({
+      category: "fact_correction", severity: "critical", factId: "next", before: "October 12, 2026", after: "October 19, 2026",
+    })]);
+  });
+
   it("classifies a changed name that matched a cited fact as a major fact correction", () => {
     const r = classify(body(greet, renew, seats, "Tomas Hruby signs off on the budget."));
     expect(r.classified).toEqual([expect.objectContaining({ category: "fact_correction", severity: "major", factId: "approver" })]);

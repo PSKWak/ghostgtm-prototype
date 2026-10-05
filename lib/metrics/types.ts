@@ -26,6 +26,7 @@ export type MetricResult = {
   denominator: number;
   ci95?: [number, number]; // Wilson interval for rates
   rowIds: string[]; // the exact rows that produced it
+  numeratorIds?: string[]; // the subset of rowIds that counted toward the numerator
   realCount: number;
   syntheticCount: number;
   breakdown?: Breakdown[]; // per reason, per arm or per prompt version

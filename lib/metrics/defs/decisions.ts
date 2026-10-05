@@ -63,7 +63,7 @@ export const decisionMetrics: MetricDef[] = [
         ...r.blocks.filter((b) => !b.isSynthetic).map((b) => ({ id: b.id, at: b.at, critical: true })),
       ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, TRUST_WINDOW);
       const critical = events.filter((e) => e.critical);
-      return { value: critical.length, numerator: critical.length, denominator: events.length, rowIds: events.map((e) => e.id), realCount: events.length, syntheticCount: 0 };
+      return { value: critical.length, numerator: critical.length, denominator: events.length, rowIds: events.map((e) => e.id), numeratorIds: critical.map((e) => e.id), realCount: events.length, syntheticCount: 0 };
     },
   },
 ];

@@ -39,6 +39,11 @@ Drafts and edit classification then call the model through the Vercel AI SDK; ev
 - `LLM_MODE=live pnpm exp grounding [--runs N]`: the measured grounding experiment (paid model calls).
 - PGlite allows one process at a time: stop `pnpm dev` before using the CLI, or set `DATABASE_URL`.
 
+**Synthetic demo data:** a deterministic four-week history (57 decisions, 5 shield blocks, 1 failed write, 62 generation
+runs) is seeded flagged `is_synthetic` so the Evals Console isn't empty. It shows on `/evals` (cards default to real + synthetic
+with the split on each card; *Real only* hides it), never in Slack, the CRM or the workspace, and never counts toward the trust
+level. The plan lives in `lib/db/synthetic-plan.ts`. It is illustrative, not a measurement.
+
 **Demo (2 minutes):** `/workspace` → Brightline → *Draft follow-up* → in Slack click *Edit*, change the
 renewal date to "December 31, 2026" → *Approve edited & send* → *Confirm & send*. Then open `/crm`,
 `/evals` (trust ladder, metrics with intervals, replay table) and `/evals/experiments`.

@@ -87,6 +87,15 @@ describe("Flow A: Brightline, context to validated learning", () => {
     expect(r.ok && r.value.kind === "confirm" && r.value.proposals[0]).toMatchObject({ factKey: "seat_count", from: "140", to: "150" });
   });
 
+  it("treats moving a date by changing only the day as a proposed correction that keeps the rest of the fact", async () => {
+    // Found on production: this edit was refused as "isn't backed by the record".
+    const { workflowId } = await generate("acct_brightline");
+    const r = await approve(workflowId, { claimEdits: [{ id: "next", sentence: "Next step on our side: Security review call, week of October 19, 2026." }] });
+    expect(r.ok && r.value.kind === "confirm" && r.value.proposals).toEqual([
+      expect.objectContaining({ factKey: "next_step", to: "Security review call, week of October 19, 2026" }),
+    ]);
+  });
+
   it("refuses an edit no fact backs, and writes nothing", async () => {
     const { workflowId } = await generate("acct_brightline");
     const r = await approve(workflowId, { claimEdits: [{ id: "docs", sentence: "As Luis asked, I'll send over the SOC 2 Type II report and API rate-limit doc in 3 days." }] });

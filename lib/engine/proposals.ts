@@ -31,13 +31,9 @@ function readValue(fact: Fact, after: string): { value: string } | { reason: str
   const what = label(fact.key);
   const [old] = extractValues(fact.value ?? "");
   if (old) {
-    const next = extractValues(after).find((v) => v.kind === old.kind);
-    if (!next) return { reason: `couldn't find a new ${what} in your edit` };
-    if (next.kind !== "date") return { value: next.kind === "money" ? `$${next.n.toLocaleString("en-US")}` : String(next.n) };
-    if (next.ambiguous) return { reason: `"${next.raw}" could mean two different dates; write the month as a word` };
-    if (next.y === undefined || next.d === undefined) return { reason: `write the full ${what}, including day and year` };
-    if (!isRealDate(next)) return { reason: `"${next.raw}" isn't a real date` };
-    return { value: `${next.y}-${pad(next.m)}-${pad(next.d)}` };
+    const next = readNewValue(old.kind, after, what);
+    // "Security review call, week of 2026-10-12" keeps its words; only the value moves.
+    return "value" in next ? { value: (fact.value ?? "").replace(old.raw, next.value) } : next;
   }
   if (fact.value && NAME.test(fact.value)) {
     const names = newNames(fact.value, after);
@@ -46,6 +42,16 @@ function readValue(fact: Fact, after: string): { value: string } | { reason: str
   const text = after.trim().replace(/[.,;:!?]+$/, "");
   const limit = (fact.value ?? "").split(/\s+/).length + MAX_EXTRA_WORDS;
   return text && text.split(/\s+/).length <= limit ? { value: text } : { reason: `couldn't tell the new ${what} from your edit` };
+}
+
+function readNewValue(kind: string, after: string, what: string): { value: string } | { reason: string } {
+  const next = extractValues(after).find((v) => v.kind === kind);
+  if (!next) return { reason: `couldn't find a new ${what} in your edit` };
+  if (next.kind !== "date") return { value: next.kind === "money" ? `$${next.n.toLocaleString("en-US")}` : String(next.n) };
+  if (next.ambiguous) return { reason: `"${next.raw}" could mean two different dates; write the month as a word` };
+  if (next.y === undefined || next.d === undefined) return { reason: `write the full ${what}, including day and year` };
+  if (!isRealDate(next)) return { reason: `"${next.raw}" isn't a real date` };
+  return { value: `${next.y}-${pad(next.m)}-${pad(next.d)}` };
 }
 
 export function proposeCorrections(edits: ClassifiedEdit[], facts: Fact[]): { proposals: FactProposal[]; unresolved: Unresolved[] } {

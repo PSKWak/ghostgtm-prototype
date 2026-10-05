@@ -14,6 +14,7 @@ export function rateResult<T extends Row>(denominatorRows: T[], counts: (row: T)
     denominator: n,
     ci95: wilson(hits.length, n),
     rowIds: denominatorRows.map((r) => r.id),
+    numeratorIds: hits.map((r) => r.id),
     realCount: denominatorRows.filter((r) => !r.isSynthetic).length,
     syntheticCount: denominatorRows.filter((r) => r.isSynthetic).length,
   };

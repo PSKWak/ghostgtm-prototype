@@ -13,7 +13,10 @@ export type Trust = {
 
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "n/a" : `${Math.round(v * 100)}%`);
 const metric = (id: string, rows: MetricRows): MetricResult => metricById(id)!.compute(rows);
-const rate = (m: MetricResult) => (m.denominator > 0 ? m.numerator / m.denominator : null);
+// The metric's own value is null below its minimum sample, so one approval never reads as "100%".
+const shown = (m: MetricResult) => `${m.value === null ? "not enough data" : pct(m.value)} (${m.numerator}/${m.denominator})`;
+const atLeast = (m: MetricResult, bar: number) => m.value !== null && m.value >= bar;
+const atMost = (m: MetricResult, bar: number) => m.value !== null && m.value <= bar;
 
 function gatesFor(rows: MetricRows): Gate[] {
   const decided = rows.decisions.filter((d) => d.kind !== "ignored").length;
@@ -26,12 +29,12 @@ function gatesFor(rows: MetricRows): Gate[] {
   for (const L of TRUST_LEVELS) {
     const g = (label: string, required: string, actual: string, pass: boolean) => gates.push({ level: L.level, label, required, actual, pass });
     if ("minDecisions" in L) g(`Real decisions ≥ ${L.minDecisions}`, `≥ ${L.minDecisions}`, String(decided), decided >= L.minDecisions);
-    if ("minCleanApproval" in L) g("Clean approval rate", `≥ ${pct(L.minCleanApproval)}`, pct(rate(clean)), (rate(clean) ?? 0) >= L.minCleanApproval);
-    if ("maxFactCorrection" in L) g("Fact correction rate", `≤ ${pct(L.maxFactCorrection)}`, pct(rate(facts)), (rate(facts) ?? 0) <= L.maxFactCorrection);
-    if ("maxRubberStamp" in L) g("Rubber-stamp rate", `≤ ${pct(L.maxRubberStamp)}`, pct(rate(stamps)), (rate(stamps) ?? 0) <= L.maxRubberStamp);
+    if ("minCleanApproval" in L) g("Clean approval rate", `≥ ${pct(L.minCleanApproval)}`, shown(clean), atLeast(clean, L.minCleanApproval));
+    if ("maxFactCorrection" in L) g("Fact correction rate", `≤ ${pct(L.maxFactCorrection)}`, shown(facts), atMost(facts, L.maxFactCorrection));
+    if ("maxRubberStamp" in L) g("Rubber-stamp rate", `≤ ${pct(L.maxRubberStamp)}`, shown(stamps), atMost(stamps, L.maxRubberStamp));
     if ("minCleanApprovalLower" in L) g("Clean approval, lower 95% bound", `≥ ${pct(L.minCleanApprovalLower)}`, pct(clean.ci95?.[0]), (clean.ci95?.[0] ?? 0) >= L.minCleanApprovalLower);
-    if ("minCompletion" in L) g("Completion rate", `= ${pct(L.minCompletion)}`, pct(rate(completion)), completion.denominator > 0 && rate(completion)! >= L.minCompletion);
-    if ("minWriteFidelity" in L) g("Write fidelity", `= ${pct(L.minWriteFidelity)}`, pct(rate(fidelity)), fidelity.denominator > 0 && rate(fidelity)! >= L.minWriteFidelity);
+    if ("minCompletion" in L) g("Completion rate", `= ${pct(L.minCompletion)}`, shown(completion), atLeast(completion, L.minCompletion));
+    if ("minWriteFidelity" in L) g("Write fidelity", `= ${pct(L.minWriteFidelity)}`, shown(fidelity), atLeast(fidelity, L.minWriteFidelity));
   }
   return gates;
 }

@@ -28,6 +28,13 @@ describe("proposeCorrections", () => {
     expect(propose(edit("f_crm", "March 31, 2027", "12/31/2026"), crm).proposals[0]?.proposedValue).toBe("2026-12-31");
   });
 
+  it("replaces only the value inside a longer fact, keeping the rest of its text", () => {
+    const next = fact("f_next", "next_step", "Security review call, week of 2026-10-12", "ai_inferred");
+    expect(propose(edit("f_next", "October 12, 2026", "October 19, 2026"), next).proposals[0]?.proposedValue).toBe("Security review call, week of 2026-10-19");
+    const seats = fact("f_seats", "seat_count", "140 seats");
+    expect(propose(edit("f_seats", "140", "150"), seats).proposals[0]?.proposedValue).toBe("150 seats");
+  });
+
   it("explains instead of guessing: missing year, impossible date, ambiguous date", () => {
     expect(propose(edit("f_crm", "March 31, 2027.", "December 31."), crm).unresolved[0]?.reason).toBe("write the full renewal date, including day and year");
     expect(propose(edit("f_crm", "March 31, 2027.", "February 30, 2026."), crm).unresolved[0]?.reason).toBe(`"February 30, 2026" isn't a real date`);

@@ -18,7 +18,9 @@ const GROUPS = [
 ] as const;
 
 export default async function Evals({ searchParams }: { searchParams: Promise<{ real?: string }> }) {
-  const realOnly = (await searchParams).real !== "0";
+  // "Real only" is the default for the trust ladder (which always uses real data); the metric
+  // cards default to real + synthetic so the demo isn't empty, with the split on every card.
+  const realOnly = (await searchParams).real === "1";
   const db = await getDb();
   const [data, views] = await Promise.all([loadEvalsConsole(db, realOnly), loadWorkflowViews(db)]);
   return (
@@ -30,6 +32,12 @@ export default async function Evals({ searchParams }: { searchParams: Promise<{ 
         </div>
         <ConsoleControls realOnly={realOnly} active={data.activePromptVersion} versions={data.promptVersions} />
       </div>
+      {!realOnly && (
+        <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground" data-testid="synthetic-banner">
+          Metrics include flagged synthetic demo history (a four-week sample for illustration, not a measurement). Every card shows its real/synthetic split;
+          the trust level below uses real decisions only. <Link className="text-primary hover:underline" href="/evals?real=1">Show real only</Link>
+        </p>
+      )}
       <TrustLadder trust={data.trust} />
       {GROUPS.map((g) => (
         <section key={g.source} className="space-y-2">

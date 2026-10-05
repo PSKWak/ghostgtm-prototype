@@ -64,7 +64,21 @@ export function diffBody(draft: Draft, afterBody: string): EditSpan[] {
 const normalize = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
 const severityOf = (v: Value): Severity => (v.kind === "number" ? "major" : "critical");
 
-function classifySpan(span: EditSpan, cited: Fact[]): ClassifiedEdit | null {
+// A rep who moves a date by a week changes one word ("12," → "19,"), which alone reads
+// as a bare number. Re-read the whole sentence so the edit spans the full value.
+function widenToValue(span: EditSpan, sentence: string): EditSpan | null {
+  const at = span.before ? sentence.indexOf(span.before) : -1;
+  if (at < 0) return null;
+  const afterSentence = sentence.slice(0, at) + span.after + sentence.slice(at + span.before.length);
+  const before = extractValues(sentence);
+  const after = extractValues(afterSentence);
+  const token = span.before.replace(/[.,;:!?]+$/, "");
+  const old = before.find((b) => b.raw.includes(token) && !after.some((a) => valuesMatch(a, b)));
+  const next = old && after.find((a) => a.kind === old.kind && !before.some((b) => valuesMatch(a, b)));
+  return old && next && old.raw !== span.before ? { ...span, before: old.raw, after: next.raw } : null;
+}
+
+function classifySpan(span: EditSpan, cited: Fact[], sentence = ""): ClassifiedEdit | null {
   // Removing text is not a correction: the rep is cutting, not restating a value.
   if (span.after.trim() === "") return null;
   const edit = (severity: Severity, factId: string | null, reason: string): ClassifiedEdit =>
@@ -76,6 +90,9 @@ function classifySpan(span: EditSpan, cited: Fact[]): ClassifiedEdit | null {
     const fact = cited.find((f) => extractValues(f.value ?? "").some((fv) => valuesMatch(value, fv)));
     if (fact) return edit(severityOf(value), fact.id, `${value.raw} (from ${fact.id}) changed to "${span.after}"`);
   }
+  const wide = changed.length > 0 ? widenToValue(span, sentence) : null;
+  const widened = wide && classifySpan(wide, cited);
+  if (widened?.factId) return widened;
   if (changed.length > 0 && after.length > 0) return edit("major", null, `value changed: ${span.before} → ${span.after} (not from a cited fact)`);
   // Names and other text values: the rep replaced a cited fact's value.
   const named = cited.find((f) => f.value && f.value.length >= 3 && normalize(span.before).includes(normalize(f.value)));
@@ -90,7 +107,7 @@ export function classifyEdits(spans: EditSpan[], draft: Draft, facts: Fact[]) {
   for (const span of spans) {
     const claim = draft.claims.find((c) => c.id === span.claimId);
     const cited = (claim?.factIds ?? []).map((id) => byId.get(id)).filter((f): f is Fact => f !== undefined);
-    const result = classifySpan(span, cited);
+    const result = classifySpan(span, cited, claim?.sentence);
     if (result) classified.push(result);
     else leftover.push(span);
   }

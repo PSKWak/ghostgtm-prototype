@@ -20,7 +20,7 @@ export function ConsoleControls({ realOnly, active, versions }: { realOnly: bool
   return (
     <div className="flex flex-wrap items-center gap-4">
       <div className="flex items-center gap-1 rounded-lg border p-0.5" role="group" aria-label="Data shown">
-        {tab(realOnly, "Real only", "/evals?real=1")}{tab(!realOnly, "Real + synthetic", "/evals?real=0")}
+        {tab(realOnly, "Real only", "/evals?real=1")}{tab(!realOnly, "Real + synthetic", "/evals")}
       </div>
       <label className="flex items-center gap-2 text-sm">
         <span className="text-muted-foreground">Prompt for new drafts</span>

@@ -18,18 +18,20 @@ export default async function MetricRowsPage({ searchParams }: { searchParams: P
         <h1 className="text-xl font-semibold">{def.label}: the rows behind the number</h1>
         <p className="text-sm text-muted-foreground">{def.question}</p>
         <p className="mt-2 text-sm"><b>Numerator:</b> {def.numerator} · <b>Denominator:</b> {def.denominator}</p>
+        <p className="text-sm"><b>Rows on this page:</b> {details.length} (the denominator) · <b>marked yes:</b> {details.filter((d) => d.counted).length} (the numerator)</p>
         <p className="text-sm"><b>Result:</b> {rateText(result.value, result.numerator, result.denominator) ?? `${result.numerator}/${result.denominator} (below minimum sample)`} · {realOnly ? "real only" : "real + synthetic"}</p>
       </div>
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm" data-testid="metric-rows">
-          <thead className="border-b"><tr>{["Row", "Table", "What it is", "Data"].map((h) => <th key={h} className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">{h}</th>)}</tr></thead>
+          <thead className="border-b"><tr>{["Row", "Table", "What it is", "In numerator?", "Data"].map((h) => <th key={h} className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">{h}</th>)}</tr></thead>
           <tbody className="divide-y">
-            {details.length === 0 && <tr><td className="px-3 py-2" colSpan={4}>No rows.</td></tr>}
+            {details.length === 0 && <tr><td className="px-3 py-2" colSpan={5}>No rows.</td></tr>}
             {details.map((d) => (
               <tr key={`${d.table}-${d.id}`}>
                 <td className="px-3 py-2 font-mono text-xs">{d.href ? <Link className="text-primary hover:underline" href={d.href}>{d.id}</Link> : d.id}</td>
                 <td className="px-3 py-2 text-xs">{d.table}</td>
                 <td className="px-3 py-2">{d.summary}</td>
+                <td className="px-3 py-2 text-xs">{d.counted === null ? "–" : d.counted ? <b className="text-emerald-700">yes</b> : "no"}</td>
                 <td className="px-3 py-2 text-xs">{d.synthetic ? <span className="rounded border border-dashed px-1">synthetic</span> : "real"}</td>
               </tr>
             ))}

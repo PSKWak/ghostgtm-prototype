@@ -18,6 +18,14 @@ describe("computeTrustLevel", () => {
     expect(t.gates.find((g) => g.level === 1 && g.label.startsWith("Real decisions"))).toMatchObject({ required: "≥ 10", actual: "0", pass: false });
   });
 
+  it("shows counts, and no rate, when a gate's metric has too few decisions", () => {
+    // Found on production: one approval showed "Clean approval rate: 100%".
+    const t = computeTrustLevel(rows(many(1)));
+    expect(t.gates.find((g) => g.level === 1 && g.label === "Clean approval rate")).toMatchObject({ actual: "not enough data (1/1)", pass: false });
+    expect(t.gates.find((g) => g.label === "Fact correction rate")).toMatchObject({ actual: "not enough data (0/1)", pass: false });
+    expect(computeTrustLevel(rows(many(12))).gates.find((g) => g.level === 1 && g.label === "Clean approval rate")).toMatchObject({ actual: "100% (12/12)", pass: true });
+  });
+
   it("reaches level 1 with 12 read clean approvals", () => expect(computeTrustLevel(rows(many(12))).level).toBe(1));
 
   it("reaches level 2 with 25, and stops at 2 without 40", () => expect(computeTrustLevel(rows(many(25))).level).toBe(2));
