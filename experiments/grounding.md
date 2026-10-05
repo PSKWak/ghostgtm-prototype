@@ -47,3 +47,8 @@ wrong in the world. Grounding measures fidelity to the graph; the feedback loop 
 - **No cached or template fallback** in either arm: the experiment measures what the prompt produces.
 - **Status:** requires `LLM_MODE=live` and an Anthropic key. It costs real money (about 60 to 80 model
   calls), so it runs only when explicitly started.
+
+## Amendment 2 (2026-10-05, before the first run)
+Live mode can now run on Groq (`LLM_PROVIDER=groq`, model `openai/gpt-oss-120b`) as well as Claude.
+Both arms of one run always use the same provider and model, and every row records the model that
+produced it. A run on Groq and a run on Claude are separate results, reported separately, never pooled.

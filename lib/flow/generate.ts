@@ -9,7 +9,7 @@ import { verifyDraft } from "@/lib/engine/verify";
 import { llmMode } from "@/lib/llm/client";
 import { recipientFor } from "@/lib/llm/fixture";
 import { generateFollowUp, type GenerateDeps } from "@/lib/llm/generate";
-import { callClaude, type ModelCall } from "@/lib/llm/model";
+import { callLiveModel, type ModelCall } from "@/lib/llm/model";
 import { PROMPT_VERSIONS, type PromptVersionId } from "@/lib/llm/prompts";
 import { getActivePromptVersion } from "@/lib/db/settings";
 import { hasOpenEscalation, loadAccountContext, type AccountContext } from "./context";
@@ -58,7 +58,7 @@ export async function generateWorkflow(db: Db, accountId: string, callId: string
   const ctx = await loadAccountContext(db, accountId);
   if (!ctx.ok) return ctx;
   const promptVersion = opts.promptVersion ?? (await getActivePromptVersion(db));
-  const deps: GenerateDeps = { mode: llmMode(), callModel: opts.callModel ?? callClaude, loadCached: () => loadCached(db, accountId, promptVersion) };
+  const deps: GenerateDeps = { mode: llmMode(), callModel: opts.callModel ?? callLiveModel, loadCached: () => loadCached(db, accountId, promptVersion) };
   const gen = await generateFollowUp({
     accountId, promptVersion, input: await buildInput(db, ctx.value, opts.avoid ?? []),
     allFacts: ctx.value.standing.facts, excludeClaimIds: opts.excludeClaimIds ?? [],

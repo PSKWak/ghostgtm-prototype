@@ -27,9 +27,12 @@ pnpm typecheck && pnpm test
 | 7. Experiments and `/evals/experiments` | done; grounding needs a live run |
 
 ## Live mode
-Set `LLM_MODE=live` and `ANTHROPIC_API_KEY` in `.env.local`. Drafts and edit classification then call
-`claude-opus-5-5` through the Vercel AI SDK; every call is logged in `ai_runs`. Without a key, everything
-runs on fixtures.
+Set `LLM_MODE=live` in `.env.local`, then choose a provider:
+- **Claude (default):** `ANTHROPIC_API_KEY=…` → `claude-opus-5-5`.
+- **Groq:** `LLM_PROVIDER=groq` and `GROQ_API_KEY=…` → `openai/gpt-oss-120b`.
+
+Drafts and edit classification then call the model through the Vercel AI SDK; every call is logged in
+`ai_runs` with the model that answered. Without a key, everything runs on fixtures.
 
 ## Experiments
 - `pnpm exp feedback | autonomy | grounding_audit`: offline, also runnable from `/evals/experiments`.

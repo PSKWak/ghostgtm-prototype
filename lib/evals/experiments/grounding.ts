@@ -53,7 +53,7 @@ export async function runGrounding(deps: GroundingDeps, runsPerAccount = 10): Pr
           rows.push({ ...base, result: { failed: true, error: gen.ok ? `generation fell back to ${gen.value.mode}` : gen.reason } });
           continue;
         }
-        rows.push({ ...base, result: { ...count(asLabeled(gen.value.draft, arm, standing.current), standing.facts), attempts: gen.value.attempts.length, body: renderBody(gen.value.draft) } });
+        rows.push({ ...base, result: { ...count(asLabeled(gen.value.draft, arm, standing.current), standing.facts), attempts: gen.value.attempts.length, model: gen.value.attempts.at(-1)?.model ?? null, body: renderBody(gen.value.draft) } });
       }
     }
   }

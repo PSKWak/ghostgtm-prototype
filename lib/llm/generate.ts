@@ -1,8 +1,9 @@
-import { GENERATE_MODEL, VERIFY_MAX_RETRIES } from "@/lib/config";
+import { VERIFY_MAX_RETRIES } from "@/lib/config";
 import { fail, ok, type Draft, type Fact, type Result } from "@/lib/engine/types";
 import { verifyDraft } from "@/lib/engine/verify";
 import { fixtureDraft, recipientFor } from "./fixture";
 import type { ModelCall } from "./model";
+import { activeModelId } from "./provider";
 import { PROMPT_VERSIONS, type GenerateInput, type PromptVersionId } from "./prompts";
 
 // Insight + draft in one call, verified per claim, retried once, then a cached
@@ -43,7 +44,7 @@ async function liveAttempt(req: GenerateRequest, deps: GenerateDeps, attempt: nu
     const verifyPassed = verifyDraft(result.draft, req.allFacts).passed;
     return { ...base, model: res.model, parseOk: true, verifyPassed, output: res.output, latencyMs, result };
   } catch (e) {
-    return { ...base, model: GENERATE_MODEL, parseOk: false, verifyPassed: false, output: null, error: e instanceof Error ? e.message : String(e), latencyMs: Date.now() - started };
+    return { ...base, model: activeModelId(), parseOk: false, verifyPassed: false, output: null, error: e instanceof Error ? e.message : String(e), latencyMs: Date.now() - started };
   }
 }
 
@@ -51,7 +52,7 @@ async function fallback(req: GenerateRequest, deps: GenerateDeps, attempts: Atte
   const next = attempts.length + 1;
   for (const cached of await deps.loadCached()) {
     if (!verifyDraft(cached.draft, req.allFacts).passed) continue; // facts may have changed since
-    attempts.push({ attempt: next, mode: "cached", model: GENERATE_MODEL, promptVersion: req.promptVersion, parseOk: true, verifyPassed: true, output: cached, latencyMs: 0 });
+    attempts.push({ attempt: next, mode: "cached", model: activeModelId(), promptVersion: req.promptVersion, parseOk: true, verifyPassed: true, output: cached, latencyMs: 0 });
     return ok({ chosen: cached, mode: "cached" });
   }
   const fixture = fixtureDraft(req.accountId, req.input.facts, req.excludeClaimIds, req.promptVersion);

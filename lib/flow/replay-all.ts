@@ -5,7 +5,7 @@ import { checkExpectation } from "@/lib/engine/replay";
 import { ok, type Result } from "@/lib/engine/types";
 import { llmMode } from "@/lib/llm/client";
 import { generateFollowUp } from "@/lib/llm/generate";
-import { callClaude, type ModelCall } from "@/lib/llm/model";
+import { callLiveModel, type ModelCall } from "@/lib/llm/model";
 import { PROMPT_VERSIONS, type PromptVersionId } from "@/lib/llm/prompts";
 import { loadAccountContext } from "./context";
 import { buildInput } from "./generate";
@@ -13,7 +13,7 @@ import { newId } from "./ids";
 
 // Runs every active regression test against every prompt version: the table that
 // shows whether a prompt change would undo something reps already corrected.
-export async function replayAll(db: Db, callModel: ModelCall = callClaude): Promise<Result<{ replayed: number }>> {
+export async function replayAll(db: Db, callModel: ModelCall = callLiveModel): Promise<Result<{ replayed: number }>> {
   const tests = await db.select().from(t.testCases).where(isNull(t.testCases.retiredBy));
   const accounts = [...new Set(tests.map((x) => x.accountId))];
   const mode = llmMode();

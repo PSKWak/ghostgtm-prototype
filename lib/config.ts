@@ -52,3 +52,10 @@ export const TRUST_LEVELS = [
   // The lower bound of the interval, not the point estimate: a lucky streak shouldn't unlock sending.
   { level: 3, name: "Auto-send low-risk email", unlocks: "Grounded email to non-executives could send without review.", minDecisions: 40, minCleanApprovalLower: 0.75, minCompletion: 1, minWriteFidelity: 1 },
 ] as const;
+
+// Live mode can run on Claude (the default this project was specified with) or on
+// Groq. Groq serves open-weight models fast and cheaply; gpt-oss-120b supports
+// JSON-schema structured outputs there, which the Zod-parsed pipeline relies on.
+export const GROQ_MODEL = "openai/gpt-oss-120b";
+// Groq's reasoning effort for the same routine-writing reason as GENERATE_EFFORT.
+export const GROQ_REASONING_EFFORT = "medium" as const;

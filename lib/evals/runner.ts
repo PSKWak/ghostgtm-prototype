@@ -4,7 +4,7 @@ import * as t from "@/lib/db/schema";
 import { fail, ok, type Result } from "@/lib/engine/types";
 import { newId } from "@/lib/flow/ids";
 import { llmMode } from "@/lib/llm/client";
-import { callClaude, type ModelCall } from "@/lib/llm/model";
+import { callLiveModel, type ModelCall } from "@/lib/llm/model";
 import { runAutonomy } from "./experiments/autonomy";
 import { runFeedback } from "./experiments/feedback";
 import { runGrounding } from "./experiments/grounding";
@@ -20,7 +20,7 @@ type AiRunRow = typeof t.aiRuns.$inferInsert;
 // Results then come only from experiment_runs, through the metric registry.
 export async function runExperiment(db: Db, name: RunnableExperiment, opts: { callModel?: ModelCall; runsPerAccount?: number } = {}): Promise<Result<{ rows: number }>> {
   const mode = llmMode();
-  const callModel = opts.callModel ?? callClaude;
+  const callModel = opts.callModel ?? callLiveModel;
   const aiRuns: AiRunRow[] = [];
   let rows: ExperimentRowInput[];
   if (name === "autonomy") rows = runAutonomy();

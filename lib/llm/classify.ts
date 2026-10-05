@@ -1,8 +1,8 @@
-import { GENERATE_MODEL } from "@/lib/config";
 import type { EditSpan } from "@/lib/engine/diff";
 import { classifyLeftover } from "@/lib/engine/edit-rules";
 import type { ClassifyMethod, EditCategory, Severity } from "@/lib/engine/types";
 import type { ModelCall } from "./model";
+import { activeModelId } from "./provider";
 import { buildClassifyPrompt, CLASSIFY_PROMPT_VERSION, CLASSIFY_SYSTEM, ClassifyOutput } from "./prompts/classify.v1";
 
 export type EditLabel = { category: EditCategory; severity: Severity; method: ClassifyMethod; reason: string };
@@ -25,6 +25,6 @@ export async function classifyLeftovers(spans: EditSpan[], deps: { mode: "fixtur
     });
     return { labels, run };
   } catch (e) {
-    return { labels: byRule, run: { promptVersion: CLASSIFY_PROMPT_VERSION, model: GENERATE_MODEL, parseOk: false, output: null, error: e instanceof Error ? e.message : String(e), latencyMs: Date.now() - started } };
+    return { labels: byRule, run: { promptVersion: CLASSIFY_PROMPT_VERSION, model: activeModelId(), parseOk: false, output: null, error: e instanceof Error ? e.message : String(e), latencyMs: Date.now() - started } };
   }
 }

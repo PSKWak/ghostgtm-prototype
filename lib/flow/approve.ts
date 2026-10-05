@@ -8,7 +8,7 @@ import { formatValue } from "@/lib/engine/templates";
 import { fail, ok, type Result, type WorkflowState } from "@/lib/engine/types";
 import { classifyLeftovers } from "@/lib/llm/classify";
 import { llmMode } from "@/lib/llm/client";
-import { callClaude, type ModelCall } from "@/lib/llm/model";
+import { callLiveModel, type ModelCall } from "@/lib/llm/model";
 import { newId } from "./ids";
 import { recordLearning } from "./learn";
 import { describeProposal, planApproval, type ApprovalInput, type ApprovalPlan, type FactChange, type ProposalView } from "./review";
@@ -54,7 +54,7 @@ export async function approveWorkflow(db: Db, req: ApproveRequest): Promise<Resu
   const question = nextQuestion(planned.value, req);
   if (question) return ok(question);
   // Classified before the transaction: a model call must not hold a database lock.
-  const classified = await classifyLeftovers(planned.value.leftover, { mode: llmMode(), callModel: req.callModel ?? callClaude });
+  const classified = await classifyLeftovers(planned.value.leftover, { mode: llmMode(), callModel: req.callModel ?? callLiveModel });
   try {
     const state = await db.transaction((tx) => writeApproval(tx, planned.value, req, classified));
     return ok({ kind: "done", workflowId: planned.value.workflow.id, state });
