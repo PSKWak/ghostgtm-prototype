@@ -47,7 +47,7 @@ export function getDb(): Promise<Db> {
 // A fresh clone should show the demo on first load without a manual seed step.
 async function seedIfEmpty(db: Db): Promise<Db> {
   const [row] = await db.select({ n: count() }).from(accounts);
-  if ((row?.n ?? 0) === 0) await seedDemo(db, { syntheticHistory: true });
+  if ((row?.n ?? 0) === 0) await seedDemo(db, { syntheticHistory: true, walkthrough: true });
   return db;
 }
 

@@ -29,7 +29,7 @@ test("Brightline: context → draft → edit → confirm → sent → logged →
   await expect(card.locator('[data-step="learned"]')).toHaveAttribute("data-status", "done");
 
   // CRM: email, note and task, all simulated and hash-checked.
-  await page.goto("/crm");
+  await page.goto("/crm?account=acct_brightline"); // the walkthrough copies write here too
   const timeline = page.getByTestId("crm-timeline");
   for (const action of ["send_email", "log_crm_activity", "create_crm_task"]) {
     await expect(timeline.locator(`[data-action="${action}"]`)).toContainText("SIMULATED");

@@ -10,7 +10,9 @@ export async function loadMetricRows(db: Db): Promise<MetricRows> {
     db.select().from(t.workflows), db.select().from(t.decisions), db.select().from(t.edits), db.select().from(t.executions),
     db.select({ id: t.drafts.id, contentHash: t.drafts.contentHash }).from(t.drafts),
     db.select().from(t.aiRuns).where(and(eq(t.aiRuns.task, "generate"), eq(t.aiRuns.attempt, 1))),
-    db.select({ r: t.replayResults }).from(t.replayResults).innerJoin(t.testCases, eq(t.replayResults.testCaseId, t.testCases.id)).where(isNull(t.testCases.retiredBy)),
+    db.select({ r: t.replayResults, isSynthetic: t.accounts.isSynthetic }).from(t.replayResults)
+      .innerJoin(t.testCases, eq(t.replayResults.testCaseId, t.testCases.id))
+      .innerJoin(t.accounts, eq(t.testCases.accountId, t.accounts.id)).where(isNull(t.testCases.retiredBy)),
     db.select().from(t.experimentRuns),
   ]);
   const wf = new Map(workflows.map((w) => [w.id, w]));
@@ -31,7 +33,7 @@ export async function loadMetricRows(db: Db): Promise<MetricRows> {
       hashMatches: e.contentHash === hash.get(approvedDraft.get(e.workflowId) ?? ""),
     })),
     generateRuns: runs.map((r) => ({ id: r.id, mode: r.mode, verifyPassedFirstTry: r.verifyPassedFirstTry, isSynthetic: r.isSynthetic })),
-    replays: replays.map(({ r }) => ({ id: r.id, testCaseId: r.testCaseId, promptVersion: r.promptVersion, passed: r.passed, ranAt: r.ranAt.toISOString() })),
+    replays: replays.map(({ r, isSynthetic }) => ({ id: r.id, testCaseId: r.testCaseId, promptVersion: r.promptVersion, passed: r.passed, ranAt: r.ranAt.toISOString(), isSynthetic })),
     experiments: experiments.map((x) => ({ id: x.id, experiment: x.experiment, arm: x.arm, caseId: x.caseId, isSynthetic: x.isSynthetic, result: x.result })),
   };
 }

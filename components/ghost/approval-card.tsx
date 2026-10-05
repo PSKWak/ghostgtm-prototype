@@ -15,6 +15,7 @@ import { DecisionSummary } from "./decision-summary";
 import { JourneyBar } from "./journey-bar";
 import { RedraftNotice } from "./redraft-notice";
 import { RejectMenu } from "./reject-menu";
+import { SyntheticBadge } from "@/components/ghost/synthetic-badge";
 import { RiskBanner } from "./risk-banner";
 
 type Problem = { claimId: string | null; sentence: string; reason: string };
@@ -85,7 +86,7 @@ export function ApprovalCard({ wf, highlight }: { wf: WorkflowView; highlight: b
       <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <span className="font-semibold">Ghost</span>{" "}
-          <span className="text-sm text-muted-foreground">drafted a follow-up for <b className="text-foreground">{wf.accountName}</b>
+          <span className="text-sm text-muted-foreground">drafted a follow-up for <b className="text-foreground">{wf.accountName}</b>{wf.synthetic && <> <SyntheticBadge /></>}
             {wf.recipient && <> to {wf.recipient.name}, {wf.recipient.title}</>}</span>
         </div>
         <span className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -117,7 +118,7 @@ export function ApprovalCard({ wf, highlight }: { wf: WorkflowView; highlight: b
         <RedraftNotice workflowId={wf.id} title="The record changed after this draft was written:" action="Redraft with the current record"
           lines={wf.staleChanges.map((c) => `${c.label} is now ${c.to} (was ${c.from})`)} />
       )}
-      {wf.state === "blocked" && wf.heldSentences.length > 0 && (
+      {wf.state === "blocked" && wf.heldSentences.length > 0 && !wf.synthetic && (
         <RedraftNotice workflowId={wf.id} title="Ghost can redraft without what it held:" action="Redraft without these"
           lines={wf.heldSentences} />
       )}

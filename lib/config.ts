@@ -59,3 +59,7 @@ export const TRUST_LEVELS = [
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 // Groq's reasoning effort for the same routine-writing reason as GENERATE_EFFORT.
 export const GROQ_REASONING_EFFORT = "medium" as const;
+
+// Minutes between walkthrough workflows: enough that the six of them read in story
+// order on every view, small enough that the whole story sits within the last few hours.
+export const WALKTHROUGH_STEP_MINUTES = 20;

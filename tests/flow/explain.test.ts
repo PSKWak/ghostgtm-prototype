@@ -21,6 +21,20 @@ describe("explainRisk", () => {
       .toBe("Two calls disagree on the final approver: Tomas Hruby vs Petra Novak. Ghost used the newer one; confirm it's right.");
   });
 
+  it("only weighs evidence from the same account", () => {
+    // Found by the e2e test: another account's newer rep correction was quoted on this card.
+    const elsewhere: Fact = { ...call, id: "f_h_dec_x_renewal_date", accountId: "b", source: "human_approved", observedAt: "2026-10-05T00:00:00Z", supersededBy: null };
+    const e = explainRisk({ verdict: "require_approval", rule: "challenged_fact", reason: "cites f_bf_renewal_crm, which newer evidence contradicts" }, [crm, elsewhere, call]);
+    expect(e.detail).toContain("but a call on 2026-10-01 said December 31, 2026");
+  });
+
+  it("finds facts whose ids carry a prefix", () => {
+    const copy: Fact = { ...crm, id: "demo_f_bf_renewal_crm", accountId: "demo_a" };
+    const copyCall: Fact = { ...call, id: "demo_f_bf_renewal_call", accountId: "demo_a" };
+    const e = explainRisk({ verdict: "require_approval", rule: "challenged_fact", reason: "cites demo_f_bf_renewal_crm, which newer evidence contradicts" }, [copy, copyCall]);
+    expect(e.detail).toBe("The renewal date on file is March 31, 2027 (from the CRM, 2025-03-14), but a call on 2026-10-01 said December 31, 2026. Check it before this goes out.");
+  });
+
   it("explains a shield block without rule ids", () => {
     const e = explainRisk({ verdict: "block", rule: "commercial_during_escalation", reason: "x" }, []);
     expect(e.tone).toBe("held");

@@ -10,7 +10,7 @@ export type DecisionRow = {
 export type BlockRow = { id: string; at: string; isSynthetic: boolean }; // a workflow the shield held
 export type ExecutionRow = { id: string; workflowId: string; hashMatches: boolean; isSynthetic: boolean };
 export type GenerateRunRow = { id: string; mode: "live" | "cached" | "fixture"; verifyPassedFirstTry: boolean | null; isSynthetic: boolean }; // attempt 1 only
-export type ReplayRow = { id: string; testCaseId: string; promptVersion: string; passed: boolean; ranAt: string };
+export type ReplayRow = { id: string; testCaseId: string; promptVersion: string; passed: boolean; ranAt: string; isSynthetic: boolean }; // synthetic = test on a synthetic account
 export type ExperimentRow = { id: string; experiment: string; arm: string; caseId: string; isSynthetic: boolean; result: unknown };
 
 export type MetricRows = {

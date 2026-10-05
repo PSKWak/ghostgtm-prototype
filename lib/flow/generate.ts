@@ -6,7 +6,7 @@ import { hashDraft } from "@/lib/engine/hash";
 import { transition } from "@/lib/engine/state-machine";
 import { fail, ok, type Result, type WorkflowState } from "@/lib/engine/types";
 import { verifyDraft } from "@/lib/engine/verify";
-import { llmMode } from "@/lib/llm/client";
+import { llmMode, type LlmMode } from "@/lib/llm/client";
 import { recipientFor } from "@/lib/llm/fixture";
 import { generateFollowUp, type GenerateDeps } from "@/lib/llm/generate";
 import { callLiveModel, type ModelCall } from "@/lib/llm/model";
@@ -23,6 +23,8 @@ export type GenerateOptions = {
   avoid?: string[]; // live redraft: sentences the model must not repeat
   promptVersion?: PromptVersionId;
   callModel?: ModelCall; // tests inject a scripted model
+  mode?: LlmMode; // the demo walkthrough always runs on fixtures, even when the app is live
+  walkthrough?: boolean; // only the seed may draft on a synthetic walkthrough account
 };
 
 // Recent live drafts for this account and prompt, newest first; generate re-verifies them.
@@ -57,8 +59,10 @@ export async function buildInput(db: Db, ctx: AccountContext, avoid: string[]) {
 export async function generateWorkflow(db: Db, accountId: string, callId: string | null, opts: GenerateOptions = {}): Promise<Result<Generated>> {
   const ctx = await loadAccountContext(db, accountId);
   if (!ctx.ok) return ctx;
+  // Work drafted by a person on a synthetic copy would be real work hidden among synthetic rows.
+  if (ctx.value.account.isSynthetic && !opts.walkthrough) return fail("this is a finished synthetic walkthrough; draft on one of the live accounts");
   const promptVersion = opts.promptVersion ?? (await getActivePromptVersion(db));
-  const deps: GenerateDeps = { mode: llmMode(), callModel: opts.callModel ?? callLiveModel, loadCached: () => loadCached(db, accountId, promptVersion) };
+  const deps: GenerateDeps = { mode: opts.mode ?? llmMode(), callModel: opts.callModel ?? callLiveModel, loadCached: () => loadCached(db, accountId, promptVersion) };
   const gen = await generateFollowUp({
     accountId, promptVersion, input: await buildInput(db, ctx.value, opts.avoid ?? []),
     allFacts: ctx.value.standing.facts, excludeClaimIds: opts.excludeClaimIds ?? [],

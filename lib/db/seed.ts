@@ -6,7 +6,9 @@ import { brightline } from "./seed-data/brightline";
 import { halcyon } from "./seed-data/halcyon";
 import { ostrava } from "./seed-data/ostrava";
 import type { SeedAccount } from "./seed-data/types";
+import { walkthroughAccount } from "./seed-data/walkthrough";
 import { seedSyntheticHistory } from "./seed-synthetic";
+import { runWalkthrough } from "./seed-walkthrough";
 
 export const SEED_ACCOUNTS: SeedAccount[] = [brightline, halcyon, ostrava];
 
@@ -26,7 +28,10 @@ const TABLES_IN_DELETE_ORDER = [
   t.facts, t.calls, t.contacts, t.accounts, t.users, t.settings,
 ] as const;
 
-export type SeedOptions = { syntheticHistory?: boolean };
+export type SeedOptions = {
+  syntheticHistory?: boolean; // four weeks of flagged decisions for the Evals Console
+  walkthrough?: boolean; // synthetic account copies taken through the full journey by the real flows
+};
 
 function toFacts(seed: SeedAccount): Fact[] {
   return seed.facts.map((f) => ({
@@ -34,24 +39,26 @@ function toFacts(seed: SeedAccount): Fact[] {
   }));
 }
 
+async function seedAccount(db: Db, seed: SeedAccount, isSynthetic: boolean): Promise<Fact[]> {
+  await db.insert(t.accounts).values({ ...seed.account, isSynthetic });
+  await db.insert(t.contacts).values(seed.contacts.map((c) => ({ ...c, accountId: seed.account.id })));
+  await db.insert(t.calls).values({ ...seed.call, accountId: seed.account.id, occurredAt: new Date(seed.call.occurredAt), isSynthetic });
+  // Rule 6: store losers with superseded_by + reason, computed by the same engine the app uses.
+  const ranked = rankFacts(toFacts(seed)).facts;
+  await db.insert(t.facts).values(ranked.map((f) => ({ ...f, observedAt: new Date(f.observedAt), isSynthetic })));
+  return ranked;
+}
+
 export async function seedDemo(db: Db, opts: SeedOptions = {}): Promise<void> {
   await db.insert(t.users).values(SEED_USERS);
   const allFacts: Fact[] = [];
-  for (const seed of SEED_ACCOUNTS) {
-    await db.insert(t.accounts).values({ ...seed.account, isSynthetic: DEMO_IS_SYNTHETIC });
-    await db.insert(t.contacts).values(seed.contacts.map((c) => ({ ...c, accountId: seed.account.id })));
-    await db.insert(t.calls).values({
-      ...seed.call, accountId: seed.account.id,
-      occurredAt: new Date(seed.call.occurredAt), isSynthetic: DEMO_IS_SYNTHETIC,
-    });
-    // Rule 6: store losers with superseded_by + reason, computed by the same engine the app uses.
-    const ranked = rankFacts(toFacts(seed)).facts;
-    allFacts.push(...ranked);
-    await db.insert(t.facts).values(ranked.map((f) => ({
-      ...f, observedAt: new Date(f.observedAt), isSynthetic: DEMO_IS_SYNTHETIC,
-    })));
-  }
+  for (const seed of SEED_ACCOUNTS) allFacts.push(...(await seedAccount(db, seed, DEMO_IS_SYNTHETIC)));
   if (opts.syntheticHistory) await seedSyntheticHistory(db, allFacts);
+  if (opts.walkthrough) {
+    const copies = SEED_ACCOUNTS.map(walkthroughAccount);
+    for (const seed of copies) await seedAccount(db, seed, true);
+    await runWalkthrough(db, copies.map((c) => c.account.id));
+  }
 }
 
 export async function resetDemo(db: Db, opts: SeedOptions = {}): Promise<void> {

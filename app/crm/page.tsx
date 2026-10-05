@@ -2,6 +2,7 @@ import { CheckCircle2, ClipboardList, Mail, NotebookPen } from "lucide-react";
 import { SimulatedBadge } from "@/components/ghost/simulated-badge";
 import { getDb } from "@/lib/db/client";
 import { loadWorkflowViews } from "@/lib/db/views/workflows";
+import { SyntheticBadge } from "@/components/ghost/synthetic-badge";
 import { formatWhen } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<{ ac
           {corrections.map(({ w, c }) => (
             <p key={`${w.id}-${c.label}`} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
               <CheckCircle2 className="size-4 text-emerald-600" aria-hidden />
-              <b>{w.accountName}</b> <span>{c.label}</span>:
+              <b>{w.accountName}</b> {w.synthetic && <SyntheticBadge />} <span>{c.label}</span>:
               <span className="text-muted-foreground line-through">{c.from}</span> → <b>{c.to}</b>
               <span className="text-muted-foreground">· confirmed by {w.decision?.userName}</span>
             </p>
@@ -45,6 +46,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<{ ac
               <header className="mb-2 flex flex-wrap items-center gap-2 text-sm">
                 <Icon className="size-4 text-muted-foreground" aria-hidden />
                 <b>{w.accountName}</b>
+                {w.synthetic && <SyntheticBadge />}
                 <span className="text-muted-foreground">{formatWhen(e.executedAt)}</span>
                 <SimulatedBadge />
                 <span className={e.hashMatches ? "text-xs text-emerald-700 dark:text-emerald-300" : "text-xs text-red-700"}>

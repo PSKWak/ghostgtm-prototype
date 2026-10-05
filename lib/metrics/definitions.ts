@@ -14,7 +14,7 @@ export const onlyReal = (r: MetricRows): MetricRows => ({
   blocks: r.blocks.filter((x) => !x.isSynthetic),
   executions: r.executions.filter((x) => !x.isSynthetic),
   generateRuns: r.generateRuns.filter((x) => !x.isSynthetic),
-  replays: r.replays,
+  replays: r.replays.filter((x) => !x.isSynthetic),
   experiments: r.experiments.filter((x) => !x.isSynthetic),
 });
 

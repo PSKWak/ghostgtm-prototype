@@ -7,7 +7,7 @@ import { transition } from "@/lib/engine/state-machine";
 import { formatValue } from "@/lib/engine/templates";
 import { fail, ok, type Result, type WorkflowState } from "@/lib/engine/types";
 import { classifyLeftovers } from "@/lib/llm/classify";
-import { llmMode } from "@/lib/llm/client";
+import { llmMode, type LlmMode } from "@/lib/llm/client";
 import { callLiveModel, type ModelCall } from "@/lib/llm/model";
 import { newId } from "./ids";
 import { recordLearning } from "./learn";
@@ -22,7 +22,7 @@ export type ApproveOutcome =
   | { kind: "acknowledge"; challenged: FactChange[] }
   | { kind: "done"; workflowId: string; state: WorkflowState };
 
-export type ApproveRequest = ApprovalInput & { confirmCorrections: boolean; acknowledgeChallenged?: boolean; callModel?: ModelCall };
+export type ApproveRequest = ApprovalInput & { confirmCorrections: boolean; acknowledgeChallenged?: boolean; callModel?: ModelCall; mode?: LlmMode };
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 // Thrown inside the transaction so a half-written approval always rolls back.
@@ -54,7 +54,7 @@ export async function approveWorkflow(db: Db, req: ApproveRequest): Promise<Resu
   const question = nextQuestion(planned.value, req);
   if (question) return ok(question);
   // Classified before the transaction: a model call must not hold a database lock.
-  const classified = await classifyLeftovers(planned.value.leftover, { mode: llmMode(), callModel: req.callModel ?? callLiveModel });
+  const classified = await classifyLeftovers(planned.value.leftover, { mode: req.mode ?? llmMode(), callModel: req.callModel ?? callLiveModel });
   try {
     const state = await db.transaction((tx) => writeApproval(tx, planned.value, req, classified));
     return ok({ kind: "done", workflowId: planned.value.workflow.id, state });
@@ -81,7 +81,7 @@ async function writeApproval(tx: Tx, plan: ApprovalPlan, req: ApproveRequest, cl
     id: plan.decisionId, workflowId: plan.workflow.id, userId: req.userId,
     kind: plan.changed ? "approved_edited" : "approved_clean", approvedDraftId: draftId, reviewMs: plan.reviewMs,
   });
-  await recordLearning(tx, plan, req.userId, classified.labels);
+  await recordLearning(tx, plan, req.userId, classified.labels, req.mode ?? llmMode());
   if (classified.run) {
     const r = classified.run;
     await tx.insert(t.aiRuns).values({

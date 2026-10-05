@@ -18,6 +18,7 @@ export type Citation = { factId: string; factKey: string; label: string; value: 
 export type ClaimView = { id: string; sentence: string; factual: boolean; label: SupportLabel | null; reason: string | null; citations: Citation[] };
 export type WorkflowView = {
   id: string; accountId: string; accountName: string; state: string; createdAt: string;
+  synthetic: boolean; // walkthrough work: shown with a badge, never counted as real
   recipient: { name: string; email: string; title: string } | null;
   subject: string; claims: ClaimView[]; agentClaims: ClaimView[]; editedByRep: boolean;
   insight: string | null;
@@ -29,7 +30,7 @@ export type WorkflowView = {
   removedSentences: string[]; // agent sentences the rep cleared
   edits: { id: string; before: string; after: string; category: string | null; severity: string | null; method: string | null; route: string | null }[];
   corrections: { label: string; from: string; to: string }[];
-  tests: { name: string; passed: boolean; reason: string; retired: boolean }[];
+  tests: { name: string; passed: boolean | null; reason: string; retired: boolean }[]; // passed null = not replayed yet
   executions: { action: ActionKind; payload: ExecutionPayload; hashMatches: boolean; executedAt: string }[];
   journey: JourneyStep[];
 };
@@ -48,10 +49,12 @@ function claimViews(draft: typeof t.drafts.$inferSelect, facts: Map<string, Fact
 }
 
 export async function loadWorkflowViews(db: Db, filter: { accountId?: string } = {}): Promise<WorkflowView[]> {
-  // Synthetic history is eval data, never shown as work in Slack, CRM or the workspace (rule 10).
-  const wfs = await db.select().from(t.workflows)
-    .where(and(eq(t.workflows.isSynthetic, false), filter.accountId ? eq(t.workflows.accountId, filter.accountId) : undefined))
-    .orderBy(desc(t.workflows.createdAt));
+  // Bulk synthetic history on the live accounts is eval data, never shown as work (rule 10).
+  // The walkthrough lives on synthetic accounts, so it shows, badged as synthetic.
+  const syntheticAccounts = new Set((await db.select({ id: t.accounts.id }).from(t.accounts).where(eq(t.accounts.isSynthetic, true))).map((a) => a.id));
+  const wfs = (await db.select().from(t.workflows)
+    .where(filter.accountId ? eq(t.workflows.accountId, filter.accountId) : undefined)
+    .orderBy(desc(t.workflows.createdAt))).filter((w) => w.isSynthetic === syntheticAccounts.has(w.accountId));
   if (wfs.length === 0) return [];
   const ids = wfs.map((w) => w.id);
   const [accounts, contacts, users, drafts, risks, decisions, executions, facts, runs] = await Promise.all([
@@ -89,7 +92,7 @@ export async function loadWorkflowViews(db: Db, filter: { accountId?: string } =
       // The latest replay is the test's current status; older ones are history.
       const r = replays.filter((rp) => rp.testCaseId === x.id).sort((a, b) => a.ranAt.getTime() - b.ranAt.getTime()).at(-1);
       const reason = (r?.output as { reason?: string } | null)?.reason ?? "not run";
-      return { name: x.name, passed: r?.passed ?? false, reason, retired: x.retiredBy !== null };
+      return { name: x.name, passed: r ? r.passed : null, reason, retired: x.retiredBy !== null };
     });
     const staleChanges = wf.state !== "awaiting_approval" ? [] : [...new Set(latest.content.claims.flatMap((c) => c.factIds))].flatMap((id) => {
       const f = factMap.get(id);
@@ -105,7 +108,7 @@ export async function loadWorkflowViews(db: Db, filter: { accountId?: string } =
     const recipient = contacts.find((c) => c.id === wf.recipientContactId);
     const user = users.find((u) => u.id === decision?.userId);
     return {
-      id: wf.id, accountId: wf.accountId, accountName: accounts.find((a) => a.id === wf.accountId)?.name ?? wf.accountId,
+      id: wf.id, accountId: wf.accountId, synthetic: wf.isSynthetic, accountName: accounts.find((a) => a.id === wf.accountId)?.name ?? wf.accountId,
       state: wf.state, createdAt: wf.createdAt.toISOString(),
       recipient: recipient ? { name: recipient.name, email: recipient.email, title: recipient.title } : null,
       subject: latest.content.subject, claims: claimViews(latest, factMap), agentClaims: claimViews(agent, factMap),
@@ -116,7 +119,7 @@ export async function loadWorkflowViews(db: Db, filter: { accountId?: string } =
         const last = mine.at(-1);
         return last ? { mode: last.mode, attempts: mine.length, promptVersion: last.promptVersion, model: last.model } : null;
       })(),
-      risk: { ...explainRisk(shown, allFacts), verdict: shown.verdict },
+      risk: { ...explainRisk(shown, allFacts.filter((f) => f.accountId === wf.accountId)), verdict: shown.verdict },
       decision: decision && { kind: decision.kind, rejectReason: decision.rejectReason, rejectFact: decision.rejectFactKey ? factLabel(decision.rejectFactKey) : null, reviewMs: decision.reviewMs, userName: user?.name ?? decision.userId, decidedAt: decision.decidedAt.toISOString() },
       edits: edits.filter((e) => e.decisionId === decision?.id).map((e) => ({
         id: e.id, before: e.before, after: e.after, category: e.category, severity: e.severity, method: e.method,

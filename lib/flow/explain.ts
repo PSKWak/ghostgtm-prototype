@@ -16,15 +16,16 @@ const SOURCES: Record<Fact["source"], string> = {
   human_approved: "reps", crm_explicit: "CRM records", ai_inferred: "calls", web: "web sources",
 };
 
+// Matched as whole words, so prefixed ids ("demo_f_bf_…") are found too.
 function factIn(reason: string, facts: Fact[]): Fact | undefined {
-  const id = reason.match(/\bf_\w+/)?.[0];
-  return facts.find((f) => f.id === id);
+  const words = new Set(reason.match(/\w+/g) ?? []);
+  return facts.find((f) => words.has(f.id));
 }
 
 function challengedDetail(reason: string, facts: Fact[]): string {
   const f = factIn(reason, facts);
   if (!f) return reason;
-  const newer = facts.find((o) => o.key === f.key && o.value !== f.value && o.observedAt > f.observedAt && o.source !== f.source);
+  const newer = facts.find((o) => o.accountId === f.accountId && o.key === f.key && o.value !== f.value && o.observedAt > f.observedAt && o.source !== f.source);
   const against = newer ? `, but ${SOURCE[newer.source]} on ${when(newer)} said ${show(newer)}` : "";
   return `The ${label(f.key)} on file is ${show(f)} (from ${SOURCE[f.source]}, ${when(f)})${against}. Check it before this goes out.`;
 }
@@ -32,7 +33,7 @@ function challengedDetail(reason: string, facts: Fact[]): string {
 function contestedDetail(reason: string, facts: Fact[]): string {
   const f = factIn(reason, facts);
   if (!f) return reason;
-  const rival = facts.find((o) => o.key === f.key && o.value !== f.value && o.source === f.source);
+  const rival = facts.find((o) => o.accountId === f.accountId && o.key === f.key && o.value !== f.value && o.source === f.source);
   return `Two ${SOURCES[f.source]} disagree on the ${label(f.key)}: ${show(f)}${rival ? ` vs ${show(rival)}` : ""}. Ghost used the newer one; confirm it's right.`;
 }
 

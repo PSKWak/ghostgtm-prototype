@@ -25,16 +25,22 @@ describe("grounding_pass_rate", () => {
 describe("replay_pass_rate", () => {
   // latest result per (test, version): generate@v1 → t1 pass (r2 replaced r1), t2 fail → 1/2; baseline → 2/2
   const replays = [
-    { id: "r1", testCaseId: "t1", promptVersion: "generate@v1", passed: false, ranAt: "2026-10-01T00:00:00Z" },
-    { id: "r2", testCaseId: "t1", promptVersion: "generate@v1", passed: true, ranAt: "2026-10-02T00:00:00Z" },
-    { id: "r3", testCaseId: "t2", promptVersion: "generate@v1", passed: false, ranAt: "2026-10-01T00:00:00Z" },
-    { id: "r4", testCaseId: "t1", promptVersion: "generate@baseline", passed: true, ranAt: "2026-10-01T00:00:00Z" },
-    { id: "r5", testCaseId: "t2", promptVersion: "generate@baseline", passed: true, ranAt: "2026-10-01T00:00:00Z" },
+    { id: "r1", testCaseId: "t1", promptVersion: "generate@v1", passed: false, ranAt: "2026-10-01T00:00:00Z", isSynthetic: false },
+    { id: "r2", testCaseId: "t1", promptVersion: "generate@v1", passed: true, ranAt: "2026-10-02T00:00:00Z", isSynthetic: false },
+    { id: "r3", testCaseId: "t2", promptVersion: "generate@v1", passed: false, ranAt: "2026-10-01T00:00:00Z", isSynthetic: false },
+    { id: "r4", testCaseId: "t1", promptVersion: "generate@baseline", passed: true, ranAt: "2026-10-01T00:00:00Z", isSynthetic: false },
+    { id: "r5", testCaseId: "t2", promptVersion: "generate@baseline", passed: true, ranAt: "2026-10-01T00:00:00Z", isSynthetic: false },
   ];
   it("uses each test's latest result, per prompt version", () => {
     const r = m("replay_pass_rate", { replays });
     expect(r).toMatchObject({ numerator: 1, denominator: 2, rowIds: ["r2", "r3"] });
     expect(r.breakdown?.map((b) => [b.key, b.numerator, b.denominator])).toEqual([["generate@v1", 1, 2], ["generate@baseline", 2, 2]]);
+  });
+
+  it("splits real and synthetic tests (a test on a synthetic account is synthetic)", () => {
+    // t1 real (r2 pass), t2 synthetic (r3 fail) → 1/2 overall, 1 real · 1 synthetic
+    const mixed = replays.map((x) => (x.testCaseId === "t2" ? { ...x, isSynthetic: true } : x));
+    expect(m("replay_pass_rate", { replays: mixed })).toMatchObject({ numerator: 1, denominator: 2, realCount: 1, syntheticCount: 1 });
   });
 });
 

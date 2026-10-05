@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { WorkflowView } from "@/lib/db/views/workflows";
+import { SyntheticBadge } from "@/components/ghost/synthetic-badge";
 import { TestCaseButton } from "./test-case-button";
 
 const th = "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground";
@@ -24,7 +25,7 @@ export function ActivityTables({ views }: { views: WorkflowView[] }) {
                 {decided.map((w) => (
                   <tr key={w.id}>
                     <td className={td}>{wfLink(w.id)}</td>
-                    <td className={td}>{w.accountName}</td>
+                    <td className={td}>{w.accountName} {w.synthetic && <SyntheticBadge />}</td>
                     <td className={td}>
                       {w.decision
                         ? `${w.decision.kind.replace(/_/g, " ")}${w.decision.rejectReason ? `: ${w.decision.rejectReason.replace(/_/g, " ")}` : ""}${w.decision.rejectFact ? ` (${w.decision.rejectFact})` : ""}`
@@ -75,6 +76,7 @@ export function ActivityTables({ views }: { views: WorkflowView[] }) {
                     <td className={td}>{x.name}</td>
                     <td className={td}>
                       {x.retired ? <span className="text-muted-foreground">retired (newer correction)</span>
+                        : x.passed === null ? <span className="text-muted-foreground">not replayed yet</span>
                         : x.passed ? <span className="font-medium text-emerald-700">pass</span> : <span className="font-medium text-red-700">fail</span>}
                     </td>
                     <td className={`${td} text-muted-foreground`}>{x.reason}</td>

@@ -37,7 +37,7 @@ export async function loadFactBoard(db: Db, accountId: string): Promise<FactRow[
 }
 
 export async function loadAccounts(db: Db) {
-  return db.select({ id: t.accounts.id, name: t.accounts.name, scenario: t.accounts.scenario }).from(t.accounts).orderBy(asc(t.accounts.name));
+  return db.select({ id: t.accounts.id, name: t.accounts.name, scenario: t.accounts.scenario, isSynthetic: t.accounts.isSynthetic }).from(t.accounts).orderBy(asc(t.accounts.name));
 }
 
 export async function loadLatestCall(db: Db, accountId: string) {

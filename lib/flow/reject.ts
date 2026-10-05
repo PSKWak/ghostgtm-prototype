@@ -5,7 +5,7 @@ import { transition } from "@/lib/engine/state-machine";
 import { fail, ok, type RejectReason, type Result, type WorkflowState } from "@/lib/engine/types";
 import { newId } from "./ids";
 
-export type RejectInput = { workflowId: string; userId: string; reason: RejectReason; reviewMs: number; factKey?: string };
+export type RejectInput = { workflowId: string; userId: string; reason: RejectReason; reviewMs: number; factKey?: string; now?: string };
 
 // Rule 2: a rejected workflow is terminal; the reason (and, for wrong_fact, which
 // fact) is the eval signal that routes the fix.
@@ -21,7 +21,8 @@ export async function rejectWorkflow(db: Db, input: RejectInput): Promise<Result
     const cited = await db.select({ id: t.facts.id, key: t.facts.key }).from(t.facts).where(eq(t.facts.accountId, wf.accountId));
     if (!cited.some((f) => f.key === input.factKey && citedIds.includes(f.id))) return fail(`the draft doesn't cite ${input.factKey}`);
   }
-  const reviewMs = Math.max(0, Math.min(input.reviewMs, Date.now() - wf.createdAt.getTime()));
+  const now = input.now ? Date.parse(input.now) : Date.now();
+  const reviewMs = Math.max(0, Math.min(input.reviewMs, now - wf.createdAt.getTime()));
   const done = await db.transaction(async (tx) => {
     const claimed = await tx.update(t.workflows).set({ state: next.value })
       .where(and(eq(t.workflows.id, wf.id), eq(t.workflows.state, "awaiting_approval"))).returning({ id: t.workflows.id });

@@ -5,12 +5,12 @@ import { isCommercial } from "@/lib/engine/commercial";
 import { transition } from "@/lib/engine/state-machine";
 import { fail, ok, type Result } from "@/lib/engine/types";
 import { isPromptVersion } from "@/lib/llm/prompts";
-import { generateWorkflow, type Generated } from "./generate";
+import { generateWorkflow, type Generated, type GenerateOptions } from "./generate";
 
 // Replaces a draft the rep can't send: one the record has moved past (expired),
 // or one the shield held (redrafted without the sentences it held). The old
 // workflow keeps its state and its eval signal; the new draft is checked from scratch.
-export async function redraftWorkflow(db: Db, workflowId: string): Promise<Result<Generated>> {
+export async function redraftWorkflow(db: Db, workflowId: string, opts: Pick<GenerateOptions, "mode" | "walkthrough"> = {}): Promise<Result<Generated>> {
   const [wf] = await db.select().from(t.workflows).where(eq(t.workflows.id, workflowId));
   if (!wf) return fail(`unknown workflow ${workflowId}`);
   if (wf.state !== "awaiting_approval" && wf.state !== "blocked") return fail(`a ${wf.state} draft can't be redrafted`);
@@ -27,6 +27,6 @@ export async function redraftWorkflow(db: Db, workflowId: string): Promise<Resul
     if (expired.length === 0) return fail("this draft was already decided");
   }
   const avoid = (draft?.content.claims ?? []).filter((c) => held.includes(c.id)).map((c) => c.sentence);
-  const generated = await generateWorkflow(db, wf.accountId, wf.callId, { excludeClaimIds: held, avoid, promptVersion: isPromptVersion(wf.promptVersion) ? wf.promptVersion : undefined });
+  const generated = await generateWorkflow(db, wf.accountId, wf.callId, { excludeClaimIds: held, avoid, promptVersion: isPromptVersion(wf.promptVersion) ? wf.promptVersion : undefined, mode: opts.mode, walkthrough: opts.walkthrough });
   return generated.ok ? ok(generated.value) : generated;
 }

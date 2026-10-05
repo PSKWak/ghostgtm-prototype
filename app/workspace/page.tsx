@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DraftButton } from "@/components/ghost/draft-button";
 import { FactBoard } from "@/components/ghost/fact-board";
 import { JourneyBar } from "@/components/ghost/journey-bar";
+import { SyntheticBadge } from "@/components/ghost/synthetic-badge";
 import { getDb } from "@/lib/db/client";
 import { loadAccounts, loadFactBoard, loadLatestCall } from "@/lib/db/views/facts";
 import { loadWorkflowViews } from "@/lib/db/views/workflows";
@@ -23,7 +24,7 @@ export default async function Workspace({ searchParams }: { searchParams: Promis
         {accounts.map((a) => (
           <Link key={a.id} href={`/workspace?account=${a.id}`} role="tab" aria-selected={a.id === account.id}
             className={cn("rounded-lg border px-3 py-1.5 text-sm", a.id === account.id ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted")}>
-            {a.name}
+            {a.name}{a.isSynthetic && <> <SyntheticBadge /></>}
           </Link>
         ))}
       </div>
@@ -31,7 +32,7 @@ export default async function Workspace({ searchParams }: { searchParams: Promis
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section className="space-y-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{account.name}</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">{account.name}{account.isSynthetic && <SyntheticBadge />}</h1>
             <p className="text-sm text-muted-foreground">{account.scenario}</p>
           </div>
           <h2 className="pt-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">What Ghost knows, and why</h2>
@@ -41,8 +42,14 @@ export default async function Workspace({ searchParams }: { searchParams: Promis
         <aside className="space-y-4">
           <div className="rounded-xl border bg-card p-4">
             <p className="text-sm text-muted-foreground">Call ended {call?.date ?? "recently"}</p>
-            <p className="mb-3 font-medium">Send the follow-up while it&apos;s fresh.</p>
-            <DraftButton accountId={account.id} accountName={account.name} />
+            {account.isSynthetic ? (
+              <p className="text-sm">A finished walkthrough, run by the real flows on a synthetic copy of this account. Open a follow-up below to see each step; draft new ones on the live accounts.</p>
+            ) : (
+              <>
+                <p className="mb-3 font-medium">Send the follow-up while it&apos;s fresh.</p>
+                <DraftButton accountId={account.id} accountName={account.name} />
+              </>
+            )}
             {call && (
               <details className="mt-3 text-sm">
                 <summary className="cursor-pointer text-muted-foreground">Call transcript ({call.transcript.length} lines)</summary>

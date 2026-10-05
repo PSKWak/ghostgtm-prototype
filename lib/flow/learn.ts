@@ -5,7 +5,7 @@ import { expectationFor } from "@/lib/engine/replay";
 import { renderDraft } from "@/lib/engine/templates";
 import { FOLLOW_UP_TEMPLATES } from "@/lib/llm/fixtures";
 import type { EditLabel } from "@/lib/llm/classify";
-import { llmMode } from "@/lib/llm/client";
+import type { LlmMode } from "@/lib/llm/client";
 import { newId } from "./ids";
 import { replayActiveTests } from "./replay";
 import type { ApprovalPlan } from "./review";
@@ -14,7 +14,7 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 // A rep's edit (1) is stored as classified spans, (2) corrects the graph, and
 // (3) becomes a regression test that is replayed against a fresh draft right away.
-export async function recordLearning(tx: Tx, plan: ApprovalPlan, userId: string, leftoverLabels: EditLabel[]): Promise<void> {
+export async function recordLearning(tx: Tx, plan: ApprovalPlan, userId: string, leftoverLabels: EditLabel[], mode: LlmMode): Promise<void> {
   const edits = [
     ...plan.classified,
     ...plan.leftover.map((e, i) => {
@@ -41,10 +41,10 @@ export async function recordLearning(tx: Tx, plan: ApprovalPlan, userId: string,
   for (const f of plan.standing.facts) {
     await tx.update(t.facts).set({ supersededBy: f.supersededBy, supersededReason: f.supersededReason }).where(eq(t.facts.id, f.id));
   }
-  await addRegressionTests(tx, plan);
+  await addRegressionTests(tx, plan, mode);
 }
 
-async function addRegressionTests(tx: Tx, plan: ApprovalPlan): Promise<void> {
+async function addRegressionTests(tx: Tx, plan: ApprovalPlan, mode: LlmMode): Promise<void> {
   const accountId = plan.workflow.accountId;
   const active = await tx.select().from(t.testCases).where(and(eq(t.testCases.accountId, accountId), isNull(t.testCases.retiredBy)));
   for (const { proposal } of plan.corrections) {
@@ -62,6 +62,6 @@ async function addRegressionTests(tx: Tx, plan: ApprovalPlan): Promise<void> {
   // Checked right away against the grounded template. In live mode that is a proxy
   // (labelled so), and the real prompt is replayed on the next generated draft.
   const template = FOLLOW_UP_TEMPLATES[accountId];
-  const label = llmMode() === "fixture" ? plan.workflow.promptVersion : "template-proxy";
+  const label = mode === "fixture" ? plan.workflow.promptVersion : "template-proxy";
   if (template) await replayActiveTests(tx, accountId, renderDraft(template, plan.standing.current), label);
 }

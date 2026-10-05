@@ -1,5 +1,6 @@
 import { CheckCircle2, FlaskConical, XCircle } from "lucide-react";
 import type { WorkflowView } from "@/lib/db/views/workflows";
+import { cn } from "@/lib/utils";
 
 const KIND: Record<string, string> = {
   approved_clean: "Approved as written", approved_edited: "Approved with edits", rejected: "Rejected", ignored: "Ignored",
@@ -25,9 +26,9 @@ export function DecisionSummary({ wf }: { wf: WorkflowView }) {
         </p>
       ))}
       {wf.tests.filter((x) => !x.retired).map((x) => (
-        <p key={x.name} className={x.passed ? "flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300" : "flex items-center gap-1.5 text-red-700"} data-testid="regression-test">
-          {x.passed ? <FlaskConical className="size-4" aria-hidden /> : <XCircle className="size-4" aria-hidden />}
-          Regression test {x.passed ? "passing" : "failing"}: {x.name}
+        <p key={x.name} className={cn("flex items-center gap-1.5", x.passed === null ? "text-muted-foreground" : x.passed ? "text-emerald-800 dark:text-emerald-300" : "text-red-700")} data-testid="regression-test">
+          {x.passed === false ? <XCircle className="size-4" aria-hidden /> : <FlaskConical className="size-4" aria-hidden />}
+          Regression test {x.passed === null ? "added, replays on the next draft" : x.passed ? "passing" : "failing"}: {x.name}
         </p>
       ))}
     </div>

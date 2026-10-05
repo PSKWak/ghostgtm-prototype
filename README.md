@@ -44,6 +44,12 @@ runs) is seeded flagged `is_synthetic` so the Evals Console isn't empty. It show
 with the split on each card; *Real only* hides it), never in Slack, the CRM or the workspace, and never counts toward the trust
 level. The plan lives in `lib/db/synthetic-plan.ts`. It is illustrative, not a measurement.
 
+**Walkthrough accounts:** Reset demo also adds three synthetic copies ("Walkthrough · …") and takes them through the
+whole journey with the same flow functions the UI calls, on fixtures (`lib/db/seed-walkthrough.ts`): a corrected renewal
+date that becomes a passing regression test, a shield hold and its redraft, and a reject followed by an edited approval.
+They show in Slack, the CRM and Evals with a SYNTHETIC badge, can't be drafted on, and never count toward trust. The three
+live accounts stay untouched for clicking through yourself.
+
 **Demo (2 minutes):** `/workspace` → Brightline → *Draft follow-up* → in Slack click *Edit*, change the
 renewal date to "December 31, 2026" → *Approve edited & send* → *Confirm & send*. Then open `/crm`,
 `/evals` (trust ladder, metrics with intervals, replay table) and `/evals/experiments`.

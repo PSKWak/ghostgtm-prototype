@@ -9,7 +9,6 @@ function latestReplays(replays: ReplayRow[]): ReplayRow[] {
   for (const r of [...replays].sort((a, b) => a.ranAt.localeCompare(b.ranAt))) latest.set(`${r.testCaseId}|${r.promptVersion}`, r);
   return [...latest.values()];
 }
-const asRows = (rs: ReplayRow[]) => rs.map((r) => ({ ...r, isSynthetic: false }));
 
 export const systemMetrics: MetricDef[] = [
   {
@@ -33,8 +32,8 @@ export const systemMetrics: MetricDef[] = [
     denominator: `regression tests replayed with ${DEFAULT_PROMPT_VERSION}`,
     compute: (r) => {
       const latest = latestReplays(r.replays);
-      const breakdown = breakdownOf(groupBy(asRows(latest), (x) => x.promptVersion), (x) => x.passed, 1);
-      return { ...rateResult(asRows(latest.filter((x) => x.promptVersion === DEFAULT_PROMPT_VERSION)), (x) => x.passed, 1), breakdown };
+      const breakdown = breakdownOf(groupBy(latest, (x) => x.promptVersion), (x) => x.passed, 1);
+      return { ...rateResult(latest.filter((x) => x.promptVersion === DEFAULT_PROMPT_VERSION), (x) => x.passed, 1), breakdown };
     },
   },
 ];
