@@ -27,3 +27,11 @@ and whether a graph-correction proposal is expected.
 Method `routing_accuracy` Wilson interval does not overlap the baseline's. With n=17 this needs a
 large gap. The baseline is right only on the 4 prompt-routed cases (4/17, Wilson [9.6%, 47.3%]),
 so the method needs ≥13/17 (Wilson lower bound 52.7%). 12/17 overlaps and counts as no measurable difference.
+
+## Amendment 1 (2026-10-05, before the first run)
+The method arm classifies each edit the way the product does: the rule-based fact diff first, then
+`classifyLeftovers` for everything else. In fixture mode that second step uses the rules in
+`lib/engine/edit-rules.ts`, which were written and tested on separate examples, without looking at
+these 17 cases. In live mode it uses the `classify_edit@v1` LLM prompt. Each result records which method
+labeled it, and the card says which mode the run used. Re-running in the other mode is a separate run,
+not a tuning step.

@@ -90,6 +90,7 @@ export const workflows = pgTable("workflows", {
   state: text("state").$type<WorkflowState>().notNull(),
   promptVersion: text("prompt_version").notNull(),
   recipientContactId: text("recipient_contact_id").references(() => contacts.id),
+  insight: text("insight"), // the one-line read for the rep, from the same call as the draft
   createdAt: createdAt(),
   isSynthetic: isSynthetic(),
 });
@@ -218,6 +219,12 @@ export const experimentRuns = pgTable("experiment_runs", {
   result: jsonb("result").notNull(),
   createdAt: createdAt(),
   isSynthetic: isSynthetic(),
+});
+
+// Small switches a manager can flip (e.g. the active prompt version).
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const outcomes = pgTable("outcomes", {

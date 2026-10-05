@@ -26,5 +26,29 @@ export const TRUST_WINDOW = 20;
 // Rates computed on fewer rows than this show "Not enough data (n=…)".
 export const DEFAULT_MIN_SAMPLE = 5;
 
-// Deterministic generation for experiments: the arms must differ only by method.
-export const EXPERIMENT_TEMPERATURE = 0;
+// The current default Claude model. It does not accept sampling parameters
+// (temperature is rejected), so experiment arms are held equal by using the same
+// model, effort, inputs and fact history instead of temperature 0.
+export const GENERATE_MODEL = "claude-opus-5-5";
+
+// A short follow-up from a dozen facts is routine writing; medium keeps cost and
+// latency low. Raise it only if measured grounding improves.
+export const GENERATE_EFFORT = "medium" as const;
+
+// A follow-up email is ~150 words; this cap leaves room for thinking without risking
+// truncated JSON.
+export const GENERATE_MAX_OUTPUT_TOKENS = 16_000;
+
+// How many recent passing live runs to consider for the cached fallback.
+export const CACHED_RUN_LOOKBACK = 5;
+
+// Trust ladder. Each level needs more real decisions and better quality than the
+// one below. 10 / 20 / 40 decisions keep the Wilson half-width under roughly
+// ±30 / ±20 / ±15 points at the target rates, enough to tell good from bad.
+export const TRUST_LEVELS = [
+  { level: 0, name: "Review everything", unlocks: "Every draft needs a rep's approval." },
+  { level: 1, name: "Trusted drafts", unlocks: "Reps can skim; drafts are usually right.", minDecisions: 10, minCleanApproval: 0.5 },
+  { level: 2, name: "Auto-log CRM notes", unlocks: "Internal CRM notes could run without review.", minDecisions: 20, minCleanApproval: 0.7, maxFactCorrection: 0.2, maxRubberStamp: 0.3 },
+  // The lower bound of the interval, not the point estimate: a lucky streak shouldn't unlock sending.
+  { level: 3, name: "Auto-send low-risk email", unlocks: "Grounded email to non-executives could send without review.", minDecisions: 40, minCleanApprovalLower: 0.75, minCompletion: 1, minWriteFidelity: 1 },
+] as const;

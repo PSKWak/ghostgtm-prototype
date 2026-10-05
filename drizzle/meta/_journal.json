@@ -22,6 +22,20 @@
       "when": 1791156224302,
       "tag": "0002_tiny_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791165189223,
+      "tag": "0003_flippant_doctor_faustus",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791166004554,
+      "tag": "0004_abnormal_union_jack",
+      "breakpoints": true
     }
   ]
 }

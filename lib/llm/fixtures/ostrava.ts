@@ -5,6 +5,7 @@ export const ostravaFollowUp: DraftTemplate = {
   accountId: "acct_ostrava",
   recipientContactId: "ct_or_petra",
   subject: "Pilot results and the ROI summary",
+  insight: "The pilot worked; the deal now hinges on an ROI case for the CFO, but two calls disagree on who signs.",
   sentences: [
     { id: "hi", text: "Hi Petra,", factual: false },
     { id: "pilot", text: "Congratulations on the pilot: {pilot_result}.", factual: true },

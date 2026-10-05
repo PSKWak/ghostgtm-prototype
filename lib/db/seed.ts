@@ -6,6 +6,7 @@ import { brightline } from "./seed-data/brightline";
 import { halcyon } from "./seed-data/halcyon";
 import { ostrava } from "./seed-data/ostrava";
 import type { SeedAccount } from "./seed-data/types";
+import { seedSyntheticHistory } from "./seed-synthetic";
 
 export const SEED_ACCOUNTS: SeedAccount[] = [brightline, halcyon, ostrava];
 
@@ -22,8 +23,10 @@ const DEMO_IS_SYNTHETIC = false;
 const TABLES_IN_DELETE_ORDER = [
   t.replayResults, t.testCases, t.outcomes, t.proposals, t.edits, t.executions,
   t.riskChecks, t.decisions, t.aiRuns, t.drafts, t.workflows, t.experimentRuns,
-  t.facts, t.calls, t.contacts, t.accounts, t.users,
+  t.facts, t.calls, t.contacts, t.accounts, t.users, t.settings,
 ] as const;
+
+export type SeedOptions = { syntheticHistory?: boolean };
 
 function toFacts(seed: SeedAccount): Fact[] {
   return seed.facts.map((f) => ({
@@ -31,8 +34,9 @@ function toFacts(seed: SeedAccount): Fact[] {
   }));
 }
 
-export async function seedDemo(db: Db): Promise<void> {
+export async function seedDemo(db: Db, opts: SeedOptions = {}): Promise<void> {
   await db.insert(t.users).values(SEED_USERS);
+  const allFacts: Fact[] = [];
   for (const seed of SEED_ACCOUNTS) {
     await db.insert(t.accounts).values({ ...seed.account, isSynthetic: DEMO_IS_SYNTHETIC });
     await db.insert(t.contacts).values(seed.contacts.map((c) => ({ ...c, accountId: seed.account.id })));
@@ -42,15 +46,17 @@ export async function seedDemo(db: Db): Promise<void> {
     });
     // Rule 6: store losers with superseded_by + reason, computed by the same engine the app uses.
     const ranked = rankFacts(toFacts(seed)).facts;
+    allFacts.push(...ranked);
     await db.insert(t.facts).values(ranked.map((f) => ({
       ...f, observedAt: new Date(f.observedAt), isSynthetic: DEMO_IS_SYNTHETIC,
     })));
   }
+  if (opts.syntheticHistory) await seedSyntheticHistory(db, allFacts);
 }
 
-export async function resetDemo(db: Db): Promise<void> {
+export async function resetDemo(db: Db, opts: SeedOptions = {}): Promise<void> {
   await db.transaction(async (tx) => {
     for (const table of TABLES_IN_DELETE_ORDER) await tx.delete(table);
-    await seedDemo(tx);
+    await seedDemo(tx, opts);
   });
 }

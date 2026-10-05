@@ -24,7 +24,9 @@ async function openDb(): Promise<Db> {
     await migratePg(db, { migrationsFolder });
     return db;
   }
-  const dataDir = path.join(process.cwd(), ".data", "pglite");
+  // Serverless deploys can only write to /tmp; that copy is per-instance and temporary,
+  // so a real deployment should set DATABASE_URL.
+  const dataDir = process.env.VERCEL ? "/tmp/pglite" : path.join(process.cwd(), ".data", "pglite");
   mkdirSync(dataDir, { recursive: true });
   const db = drizzlePglite(new PGlite(dataDir), { schema });
   await migratePglite(db, { migrationsFolder });
@@ -45,7 +47,7 @@ export function getDb(): Promise<Db> {
 // A fresh clone should show the demo on first load without a manual seed step.
 async function seedIfEmpty(db: Db): Promise<Db> {
   const [row] = await db.select({ n: count() }).from(accounts);
-  if ((row?.n ?? 0) === 0) await seedDemo(db);
+  if ((row?.n ?? 0) === 0) await seedDemo(db, { syntheticHistory: true });
   return db;
 }
 

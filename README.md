@@ -19,11 +19,23 @@ pnpm typecheck && pnpm test
 | Phase | Status |
 | --- | --- |
 | 1. Schema, seed, Reset demo | done |
-| 2. Engine + tests; experiments pre-registered | done (labels need human review before commit) |
-| 3. Full journey on fixtures (pulled in the rule-based learning loop from 5–6) | done |
-| 4–7 | not started |
+| 2. Engine + tests; experiments pre-registered | done (labels still need human review: `reviewedBy: null`) |
+| 3. Full journey on fixtures | done |
+| 4. Live `generate` (insight + draft, verify + 1 retry, cached fallback) | done; verified with a stubbed model, needs a key to verify live |
+| 5. Edits: fact diff, then rule/LLM classification of the rest | done |
+| 6. Metric registry, Evals Console, trust ladder, replay, prompt switch | done |
+| 7. Experiments and `/evals/experiments` | done; grounding needs a live run |
+
+## Live mode
+Set `LLM_MODE=live` and `ANTHROPIC_API_KEY` in `.env.local`. Drafts and edit classification then call
+`claude-opus-5-5` through the Vercel AI SDK; every call is logged in `ai_runs`. Without a key, everything
+runs on fixtures.
+
+## Experiments
+- `pnpm exp feedback | autonomy | grounding_audit`: offline, also runnable from `/evals/experiments`.
+- `LLM_MODE=live pnpm exp grounding [--runs N]`: the measured grounding experiment (paid model calls).
+- PGlite allows one process at a time: stop `pnpm dev` before using the CLI, or set `DATABASE_URL`.
 
 **Demo (2 minutes):** `/workspace` → Brightline → *Draft follow-up* → in Slack click *Edit*, change the
-renewal date to "December 31, 2026" → *Approve edited & send* → *Confirm & send*. Then open `/crm`
-(email, note, task), `/evals` (decision, edit, passing regression test), and draft Brightline again:
-the next draft already has the corrected date. `pnpm test:e2e` runs this in a real browser.
+renewal date to "December 31, 2026" → *Approve edited & send* → *Confirm & send*. Then open `/crm`,
+`/evals` (trust ladder, metrics with intervals, replay table) and `/evals/experiments`.

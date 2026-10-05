@@ -4,6 +4,8 @@ import * as t from "@/lib/db/schema";
 import { expectationFor } from "@/lib/engine/replay";
 import { renderDraft } from "@/lib/engine/templates";
 import { FOLLOW_UP_TEMPLATES } from "@/lib/llm/fixtures";
+import type { EditLabel } from "@/lib/llm/classify";
+import { llmMode } from "@/lib/llm/client";
 import { newId } from "./ids";
 import { replayActiveTests } from "./replay";
 import type { ApprovalPlan } from "./review";
@@ -12,10 +14,13 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 // A rep's edit (1) is stored as classified spans, (2) corrects the graph, and
 // (3) becomes a regression test that is replayed against a fresh draft right away.
-export async function recordLearning(tx: Tx, plan: ApprovalPlan, userId: string): Promise<void> {
+export async function recordLearning(tx: Tx, plan: ApprovalPlan, userId: string, leftoverLabels: EditLabel[]): Promise<void> {
   const edits = [
     ...plan.classified,
-    ...plan.leftover.map((e) => ({ ...e, category: null, severity: null, method: null, factId: null })),
+    ...plan.leftover.map((e, i) => {
+      const l = leftoverLabels[i];
+      return { ...e, category: l?.category ?? null, severity: l?.severity ?? null, method: l?.method ?? null, factId: null };
+    }),
   ];
   if (edits.length > 0) {
     await tx.insert(t.edits).values(edits.map((e) => ({
@@ -54,6 +59,9 @@ async function addRegressionTests(tx: Tx, plan: ApprovalPlan): Promise<void> {
       await tx.update(t.testCases).set({ retiredBy: id }).where(eq(t.testCases.id, old.id));
     }
   }
+  // Checked right away against the grounded template. In live mode that is a proxy
+  // (labelled so), and the real prompt is replayed on the next generated draft.
   const template = FOLLOW_UP_TEMPLATES[accountId];
-  if (template) await replayActiveTests(tx, accountId, renderDraft(template, plan.standing.current));
+  const label = llmMode() === "fixture" ? plan.workflow.promptVersion : "template-proxy";
+  if (template) await replayActiveTests(tx, accountId, renderDraft(template, plan.standing.current), label);
 }

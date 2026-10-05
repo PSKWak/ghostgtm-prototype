@@ -6,6 +6,9 @@ import { hashDraft } from "@/lib/engine/hash";
 import { transition } from "@/lib/engine/state-machine";
 import { formatValue } from "@/lib/engine/templates";
 import { fail, ok, type Result, type WorkflowState } from "@/lib/engine/types";
+import { classifyLeftovers } from "@/lib/llm/classify";
+import { llmMode } from "@/lib/llm/client";
+import { callClaude, type ModelCall } from "@/lib/llm/model";
 import { newId } from "./ids";
 import { recordLearning } from "./learn";
 import { describeProposal, planApproval, type ApprovalInput, type ApprovalPlan, type FactChange, type ProposalView } from "./review";
@@ -19,7 +22,7 @@ export type ApproveOutcome =
   | { kind: "acknowledge"; challenged: FactChange[] }
   | { kind: "done"; workflowId: string; state: WorkflowState };
 
-export type ApproveRequest = ApprovalInput & { confirmCorrections: boolean; acknowledgeChallenged?: boolean };
+export type ApproveRequest = ApprovalInput & { confirmCorrections: boolean; acknowledgeChallenged?: boolean; callModel?: ModelCall };
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 // Thrown inside the transaction so a half-written approval always rolls back.
@@ -50,8 +53,10 @@ export async function approveWorkflow(db: Db, req: ApproveRequest): Promise<Resu
   if (!planned.ok) return planned;
   const question = nextQuestion(planned.value, req);
   if (question) return ok(question);
+  // Classified before the transaction: a model call must not hold a database lock.
+  const classified = await classifyLeftovers(planned.value.leftover, { mode: llmMode(), callModel: req.callModel ?? callClaude });
   try {
-    const state = await db.transaction((tx) => writeApproval(tx, planned.value, req));
+    const state = await db.transaction((tx) => writeApproval(tx, planned.value, req, classified));
     return ok({ kind: "done", workflowId: planned.value.workflow.id, state });
   } catch (e) {
     if (e instanceof ApprovalAborted) return fail(e.message);
@@ -59,7 +64,7 @@ export async function approveWorkflow(db: Db, req: ApproveRequest): Promise<Resu
   }
 }
 
-async function writeApproval(tx: Tx, plan: ApprovalPlan, req: ApproveRequest): Promise<WorkflowState> {
+async function writeApproval(tx: Tx, plan: ApprovalPlan, req: ApproveRequest, classified: Awaited<ReturnType<typeof classifyLeftovers>>): Promise<WorkflowState> {
   // Claim the workflow atomically: a concurrent second approve finds nothing to claim.
   const claimed = await tx.update(t.workflows).set({ state: "approved" })
     .where(and(eq(t.workflows.id, plan.workflow.id), eq(t.workflows.state, "awaiting_approval"))).returning({ id: t.workflows.id });
@@ -76,7 +81,14 @@ async function writeApproval(tx: Tx, plan: ApprovalPlan, req: ApproveRequest): P
     id: plan.decisionId, workflowId: plan.workflow.id, userId: req.userId,
     kind: plan.changed ? "approved_edited" : "approved_clean", approvedDraftId: draftId, reviewMs: plan.reviewMs,
   });
-  await recordLearning(tx, plan, req.userId);
+  await recordLearning(tx, plan, req.userId, classified.labels);
+  if (classified.run) {
+    const r = classified.run;
+    await tx.insert(t.aiRuns).values({
+      id: newId("run"), workflowId: plan.workflow.id, task: "classify_edit", promptVersion: r.promptVersion, model: r.model, mode: "live",
+      input: { decisionId: plan.decisionId, spans: plan.leftover }, output: (r.output ?? null) as object | null, parseOk: r.parseOk, latencyMs: r.latencyMs,
+    });
+  }
 
   // Rule 1: risk is checked again, now with the approval, right before anything runs.
   const risks = assessAllActions({ ...plan.ctx, standing: plan.standing }, plan.approved, plan.verification.verdicts, plan.workflow.recipientContactId, "approved");

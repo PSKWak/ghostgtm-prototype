@@ -10,6 +10,7 @@ describe("isCommercial", () => {
     "Happy to walk you through our Q4 offer when you're ready.",
     "We could also grow your footprint next quarter.",
     "Once things settle, I'd love to pick up the conversation about the 3 additional clinic sites.",
+    "We'd also love to discuss a bigger license tier.",
   ]) it(`flags: ${pitch}`, () => expect(isCommercial(pitch)).toBe(true));
 
   for (const fine of [
@@ -17,6 +18,7 @@ describe("isCommercial", () => {
     "You'll have the written root-cause analysis by Friday, October 9.",
     "Engineering will send daily updates at 9am ET until it's fixed.",
     "Let's get your other clinics' appointments back in sync first.",
+    "Your premium support plan covers the weekend on-call.",
   ]) it(`allows: ${fine}`, () => expect(isCommercial(fine)).toBe(false));
 });
 

@@ -36,3 +36,11 @@ Any critical auto-execution is a failure, whatever the burden.
 This is a simulation on synthetic labels; it says nothing about real rep behavior.
 The labels and `risk.ts` were written in the same session, so this experiment checks that
 the policy behaves as designed. It is not evidence that the policy generalizes.
+
+## Amendment 1 (2026-10-05, before the first run)
+`risk.ts` changed after these labels were drafted (and before any run): the `challenged_fact` rule was
+added, the commercial-ask check became the sentence-level detector in `lib/engine/commercial.ts`, and
+`create_crm_task` was added as an internal action. The run uses the policy as committed at run time,
+with `trustLevel` = `policyTrustLevel` (3) from the labels file. Because the policy and the labels were
+written in the same project by the same author, this experiment shows the policy behaves as designed on
+these cases. It is not evidence that it generalizes.

@@ -12,6 +12,7 @@ const template: DraftTemplate = {
   accountId: "a",
   recipientContactId: "ct",
   subject: "Following up",
+  insight: "test",
   sentences: [
     { id: "hi", text: "Hi Dana,", factual: false },
     { id: "renew", text: "I have your renewal down for {renewal_date}.", factual: true },

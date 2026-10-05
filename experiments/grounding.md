@@ -36,3 +36,14 @@ Several labeled claims test this on purpose.
 ## Grounding is not truth
 Brightline's "renewal in March 2027" is *supported* (it matches the current CRM fact) and still
 wrong in the world. Grounding measures fidelity to the graph; the feedback loop fixes the graph.
+
+## Amendment 1 (2026-10-05, before the first run)
+- **Temperature removed.** The pre-registration said temperature 0, but `claude-opus-5-5` (the current
+  default model) rejects sampling parameters. The arms are held equal instead by the same model
+  (`GENERATE_MODEL`), the same effort (`GENERATE_EFFORT` = medium), the same inputs and the same fact
+  history. Run-to-run variation is expected and is what the 10 runs per account measure.
+- **Failed generations** (an API error, or output that doesn't match the schema) are recorded as failed
+  runs and excluded from the claim counts. The card reports how many runs failed in each arm.
+- **No cached or template fallback** in either arm: the experiment measures what the prompt produces.
+- **Status:** requires `LLM_MODE=live` and an Anthropic key. It costs real money (about 60 to 80 model
+  calls), so it runs only when explicitly started.

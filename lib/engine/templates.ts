@@ -16,6 +16,7 @@ export type DraftTemplate = {
   accountId: string;
   recipientContactId: string;
   subject: string;
+  insight: string; // the one-line read for the rep, as a live model would write it
   sentences: SentenceTemplate[];
 };
 

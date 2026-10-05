@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import type { WorkflowView } from "@/lib/db/views/workflows";
-import { splitLetter } from "@/lib/engine/letter";
 import { formatWhen } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { AcknowledgeDialog, type Challenged } from "./acknowledge-dialog";
-import { ClaimLine } from "./claim-line";
+import { EditableLetter, GenerationBadge, Letter } from "./card-parts";
 import { ConfirmCorrections, type Proposal } from "./confirm-corrections";
 import { DecisionSummary } from "./decision-summary";
 import { JourneyBar } from "./journey-bar";
@@ -90,9 +88,13 @@ export function ApprovalCard({ wf, highlight }: { wf: WorkflowView; highlight: b
           <span className="text-sm text-muted-foreground">drafted a follow-up for <b className="text-foreground">{wf.accountName}</b>
             {wf.recipient && <> to {wf.recipient.name}, {wf.recipient.title}</>}</span>
         </div>
-        <time className="text-xs text-muted-foreground">{formatWhen(wf.createdAt)}</time>
+        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+          {wf.generation && <GenerationBadge g={wf.generation} />}
+          <time>{formatWhen(wf.createdAt)}</time>
+        </span>
       </header>
 
+      {wf.insight && <p className="mb-2 text-sm"><span className="font-medium">Ghost&apos;s read:</span> {wf.insight}</p>}
       <div className="rounded-lg border bg-background p-3 text-sm leading-relaxed">
         <p className="mb-2 font-medium">Subject: {wf.subject}</p>
         {editing ? <EditableLetter wf={wf} edits={edits} onChange={(id, s) => setEdits({ ...edits, [id]: s })} /> : <Letter claims={wf.claims} />}
@@ -142,34 +144,5 @@ export function ApprovalCard({ wf, highlight }: { wf: WorkflowView; highlight: b
       <AcknowledgeDialog challenged={challenged} busy={busy}
         onEdit={() => { setChallenged(null); setEditing(true); }} onSend={() => approve(confirmed, true)} />
     </article>
-  );
-}
-
-function EditableLetter({ wf, edits, onChange }: { wf: WorkflowView; edits: Record<string, string>; onChange: (id: string, s: string) => void }) {
-  return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">Edit any sentence. Clear one to remove it.</p>
-      {wf.claims.map((c) => {
-        if (!c.factual) return <p key={c.id} className="text-muted-foreground">{c.sentence}</p>;
-        const value = edits[c.id] ?? c.sentence;
-        const removed = value.trim() === "";
-        return (
-          <Textarea key={c.id} aria-label={`Edit sentence ${c.id}`} data-claim-edit={c.id} rows={2} value={value}
-            placeholder="This sentence will be removed" onChange={(e) => onChange(c.id, e.target.value)}
-            className={cn(removed && "border-red-300 bg-red-50/50 dark:bg-red-950/30", !removed && value !== c.sentence && "border-amber-400 bg-amber-50/50 dark:bg-amber-950/30")} />
-        );
-      })}
-    </div>
-  );
-}
-
-function Letter({ claims }: { claims: WorkflowView["claims"] }) {
-  const parts = splitLetter(claims);
-  return (
-    <div className="space-y-2">
-      {[parts.greeting, parts.body, parts.signoff].filter((p) => p.length > 0).map((p) => (
-        <p key={p[0]!.id}>{p.map((c) => <ClaimLine key={c.id} claim={c} />)}</p>
-      ))}
-    </div>
   );
 }

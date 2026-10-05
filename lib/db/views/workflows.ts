@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
 import { toFact } from "@/lib/db/mappers";
 import * as t from "@/lib/db/schema";
@@ -7,6 +7,7 @@ import { computeJourney, type JourneyStep } from "@/lib/engine/journey";
 import { formatValue } from "@/lib/engine/templates";
 import type { ActionKind, Fact, RiskVerdict, SupportLabel } from "@/lib/engine/types";
 import { isCommercial } from "@/lib/engine/commercial";
+import { routeFeedback } from "@/lib/engine/routing";
 import { explainRisk, type RiskExplanation } from "@/lib/flow/explain";
 import { strictest } from "@/lib/flow/risk-input";
 import { factLabel } from "@/lib/format";
@@ -19,12 +20,14 @@ export type WorkflowView = {
   id: string; accountId: string; accountName: string; state: string; createdAt: string;
   recipient: { name: string; email: string; title: string } | null;
   subject: string; claims: ClaimView[]; agentClaims: ClaimView[]; editedByRep: boolean;
+  insight: string | null;
+  generation: { mode: string; attempts: number; promptVersion: string; model: string } | null; // how the draft was produced
   risk: RiskExplanation & { verdict: RiskVerdict };
   decision: { kind: string; rejectReason: string | null; rejectFact: string | null; reviewMs: number; userName: string; decidedAt: string } | null;
   staleChanges: { label: string; from: string; to: string }[]; // pending draft the record has moved past
   heldSentences: string[]; // what the shield held, so the redraft can say what it leaves out
   removedSentences: string[]; // agent sentences the rep cleared
-  edits: { before: string; after: string; category: string | null; severity: string | null }[];
+  edits: { id: string; before: string; after: string; category: string | null; severity: string | null; method: string | null; route: string | null }[];
   corrections: { label: string; from: string; to: string }[];
   tests: { name: string; passed: boolean; reason: string; retired: boolean }[];
   executions: { action: ActionKind; payload: ExecutionPayload; hashMatches: boolean; executedAt: string }[];
@@ -45,17 +48,21 @@ function claimViews(draft: typeof t.drafts.$inferSelect, facts: Map<string, Fact
 }
 
 export async function loadWorkflowViews(db: Db, filter: { accountId?: string } = {}): Promise<WorkflowView[]> {
+  // Synthetic history is eval data, never shown as work in Slack, CRM or the workspace (rule 10).
   const wfs = await db.select().from(t.workflows)
-    .where(filter.accountId ? eq(t.workflows.accountId, filter.accountId) : undefined).orderBy(desc(t.workflows.createdAt));
+    .where(and(eq(t.workflows.isSynthetic, false), filter.accountId ? eq(t.workflows.accountId, filter.accountId) : undefined))
+    .orderBy(desc(t.workflows.createdAt));
   if (wfs.length === 0) return [];
   const ids = wfs.map((w) => w.id);
-  const [accounts, contacts, users, drafts, risks, decisions, executions, facts] = await Promise.all([
+  const [accounts, contacts, users, drafts, risks, decisions, executions, facts, runs] = await Promise.all([
     db.select().from(t.accounts), db.select().from(t.contacts), db.select().from(t.users),
     db.select().from(t.drafts).where(inArray(t.drafts.workflowId, ids)),
     db.select().from(t.riskChecks).where(inArray(t.riskChecks.workflowId, ids)),
     db.select().from(t.decisions).where(inArray(t.decisions.workflowId, ids)),
     db.select().from(t.executions).where(inArray(t.executions.workflowId, ids)),
     db.select().from(t.facts),
+    db.select({ workflowId: t.aiRuns.workflowId, mode: t.aiRuns.mode, attempt: t.aiRuns.attempt, promptVersion: t.aiRuns.promptVersion, model: t.aiRuns.model })
+      .from(t.aiRuns).where(inArray(t.aiRuns.workflowId, ids)),
   ]);
   const decisionIds = decisions.map((d) => d.id);
   const [edits, proposals, tests] = decisionIds.length === 0 ? [[], [], []] : await Promise.all([
@@ -103,9 +110,18 @@ export async function loadWorkflowViews(db: Db, filter: { accountId?: string } =
       recipient: recipient ? { name: recipient.name, email: recipient.email, title: recipient.title } : null,
       subject: latest.content.subject, claims: claimViews(latest, factMap), agentClaims: claimViews(agent, factMap),
       editedByRep: latest.author === "rep",
+      insight: wf.insight,
+      generation: (() => {
+        const mine = runs.filter((r) => r.workflowId === wf.id).sort((a, b) => a.attempt - b.attempt);
+        const last = mine.at(-1);
+        return last ? { mode: last.mode, attempts: mine.length, promptVersion: last.promptVersion, model: last.model } : null;
+      })(),
       risk: { ...explainRisk(shown, allFacts), verdict: shown.verdict },
       decision: decision && { kind: decision.kind, rejectReason: decision.rejectReason, rejectFact: decision.rejectFactKey ? factLabel(decision.rejectFactKey) : null, reviewMs: decision.reviewMs, userName: user?.name ?? decision.userId, decidedAt: decision.decidedAt.toISOString() },
-      edits: edits.filter((e) => e.decisionId === decision?.id).map((e) => ({ before: e.before, after: e.after, category: e.category, severity: e.severity })),
+      edits: edits.filter((e) => e.decisionId === decision?.id).map((e) => ({
+        id: e.id, before: e.before, after: e.after, category: e.category, severity: e.severity, method: e.method,
+        route: e.category ? routeFeedback({ kind: "edit", category: e.category }) : null,
+      })),
       corrections: wfProposals.map((p) => {
         const old = factMap.get(p.currentFactId ?? "");
         return { label: factLabel(p.factKey), from: formatValue(old?.value ?? "unknown"), to: formatValue(p.proposedValue) };

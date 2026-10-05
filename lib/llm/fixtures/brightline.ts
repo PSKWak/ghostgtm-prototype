@@ -6,6 +6,7 @@ export const brightlineFollowUp: DraftTemplate = {
   accountId: "acct_brightline",
   recipientContactId: "ct_bf_dana",
   subject: "Following up on today's call",
+  insight: "Dana said renewal moved to December 31; the CRM still says March 2027, and security review gates expansion.",
   sentences: [
     { id: "hi", text: "Hi Dana,", factual: false },
     { id: "thanks", text: "Thanks for the time today.", factual: false },

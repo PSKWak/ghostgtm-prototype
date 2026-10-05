@@ -39,3 +39,13 @@ export const AutonomyLabels = z.object({
 export const loadGroundingLabels = () => GroundingLabels.parse(grounding);
 export const loadFeedbackLabels = () => FeedbackLabels.parse(feedback);
 export const loadAutonomyLabels = () => AutonomyLabels.parse(autonomy);
+
+// Whether a human has reviewed each label file yet (reviewedBy is set by hand).
+export function labelsReviewed(): Record<string, boolean> {
+  const reviewed = (raw: unknown) => typeof (raw as { reviewedBy?: unknown }).reviewedBy === "string";
+  return {
+    "experiments/grounding.labels.json": reviewed(grounding),
+    "experiments/feedback.labels.json": reviewed(feedback),
+    "experiments/autonomy.labels.json": reviewed(autonomy),
+  };
+}

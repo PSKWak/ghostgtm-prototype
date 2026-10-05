@@ -4,6 +4,7 @@ import * as t from "@/lib/db/schema";
 import { isCommercial } from "@/lib/engine/commercial";
 import { transition } from "@/lib/engine/state-machine";
 import { fail, ok, type Result } from "@/lib/engine/types";
+import { isPromptVersion } from "@/lib/llm/prompts";
 import { generateWorkflow, type Generated } from "./generate";
 
 // Replaces a draft the rep can't send: one the record has moved past (expired),
@@ -25,6 +26,7 @@ export async function redraftWorkflow(db: Db, workflowId: string): Promise<Resul
       .where(and(eq(t.workflows.id, wf.id), eq(t.workflows.state, "awaiting_approval"))).returning({ id: t.workflows.id });
     if (expired.length === 0) return fail("this draft was already decided");
   }
-  const generated = await generateWorkflow(db, wf.accountId, wf.callId, held);
+  const avoid = (draft?.content.claims ?? []).filter((c) => held.includes(c.id)).map((c) => c.sentence);
+  const generated = await generateWorkflow(db, wf.accountId, wf.callId, { excludeClaimIds: held, avoid, promptVersion: isPromptVersion(wf.promptVersion) ? wf.promptVersion : undefined });
   return generated.ok ? ok(generated.value) : generated;
 }

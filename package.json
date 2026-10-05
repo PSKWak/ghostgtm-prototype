@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx lib/db/seed-cli.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "exp": "tsx lib/evals/cli.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.71",
