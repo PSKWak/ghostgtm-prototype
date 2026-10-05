@@ -1,0 +1,101 @@
+{
+  "experiment": "grounding",
+  "version": 1,
+  "createdAt": "2026-10-04",
+  "draftedBy": "coding agent (from seed scenarios)",
+  "reviewedBy": null,
+  "labels": ["supported", "partial", "none", "stale"],
+  "note": "Labels judge each claim against the seed fact graph, not the real world. 'stale' = cites a superseded fact.",
+  "drafts": [
+    {
+      "id": "gl_01", "accountId": "acct_brightline",
+      "claims": [
+        { "sentence": "Great to hear all 140 seats are live.", "factIds": ["f_bf_seats"], "label": "supported" },
+        { "sentence": "I'll send the SOC 2 Type II report and the API rate-limit doc today.", "factIds": ["f_bf_request"], "label": "supported" },
+        { "sentence": "Let's hold the security review call the week of October 12th.", "factIds": ["f_bf_next"], "label": "supported" }
+      ]
+    },
+    {
+      "id": "gl_02", "accountId": "acct_brightline",
+      "claims": [
+        { "sentence": "Your renewal is in March 2027.", "factIds": ["f_bf_renewal_crm"], "label": "supported", "why": "matches the current CRM fact; wrong in the world, which is the feedback loop's job" },
+        { "sentence": "Dana has already approved the expansion budget.", "factIds": ["f_bf_budget"], "label": "none", "why": "budget owner is unknown" },
+        { "sentence": "All 200 seats are live.", "factIds": ["f_bf_seats"], "label": "none" }
+      ]
+    },
+    {
+      "id": "gl_03", "accountId": "acct_brightline",
+      "claims": [
+        { "sentence": "All 140 seats went live in September.", "factIds": ["f_bf_seats"], "label": "partial", "why": "September is not in any fact" },
+        { "sentence": "As discussed, I'll send the SOC 2 report and our penetration test results.", "factIds": ["f_bf_request"], "label": "partial", "why": "pen test results were never requested" },
+        { "sentence": "Who owns budget on your side is still unknown to us.", "factIds": ["f_bf_budget"], "label": "supported" }
+      ]
+    },
+    {
+      "id": "gl_04", "accountId": "acct_brightline",
+      "claims": [
+        { "sentence": "Your ARR is $84,000.", "factIds": [], "label": "none", "why": "no citation" },
+        { "sentence": "At $84,000 ARR you're one of our key logistics accounts.", "factIds": ["f_bf_arr"], "label": "partial", "why": "'key logistics account' is not a fact" },
+        { "sentence": "Your renewal is set for the week of October 12th.", "factIds": ["f_bf_next"], "label": "none", "why": "that date is the security review, not the renewal" }
+      ]
+    },
+    {
+      "id": "gl_05", "accountId": "acct_halcyon",
+      "claims": [
+        { "sentence": "I'm sorry the EHR sync has been failing since September 28th.", "factIds": ["f_hc_escalation"], "label": "supported" },
+        { "sentence": "You'll have a written root-cause analysis by Friday, October 9th.", "factIds": ["f_hc_rca"], "label": "supported" },
+        { "sentence": "Engineering will send daily updates at 9am Eastern.", "factIds": ["f_hc_updates"], "label": "supported" }
+      ]
+    },
+    {
+      "id": "gl_06", "accountId": "acct_halcyon",
+      "claims": [
+        { "sentence": "Good news: the EHR sync issue was resolved on October 1st.", "factIds": ["f_hc_escalation"], "label": "none" },
+        { "sentence": "You'll have the root-cause analysis by October 16th.", "factIds": ["f_hc_rca"], "label": "none" }
+      ]
+    },
+    {
+      "id": "gl_07", "accountId": "acct_halcyon",
+      "claims": [
+        { "sentence": "Once SUP-4471 is closed, I'd love to discuss the 3 additional clinic sites.", "factIds": ["f_hc_escalation", "f_hc_expansion"], "label": "supported", "why": "grounded; whether it is safe to send is risk.ts's question, not grounding's" },
+        { "sentence": "Engineering will send updates every 4 hours.", "factIds": ["f_hc_updates"], "label": "none" }
+      ]
+    },
+    {
+      "id": "gl_08", "accountId": "acct_halcyon",
+      "claims": [
+        { "sentence": "I know your 40 front-desk staff are re-keying appointments since September 28th.", "factIds": ["f_hc_escalation"], "label": "partial", "why": "the date is backed; the staff count is not" },
+        { "sentence": "Your ARR is $126,000.", "factIds": ["f_hc_arr"], "label": "supported" }
+      ]
+    },
+    {
+      "id": "gl_09", "accountId": "acct_ostrava",
+      "claims": [
+        { "sentence": "The pilot cut line changeover time by 18%.", "factIds": ["f_or_pilot"], "label": "supported" },
+        { "sentence": "I'll put together a one-page ROI summary for your CFO.", "factIds": ["f_or_request"], "label": "supported" }
+      ]
+    },
+    {
+      "id": "gl_10", "accountId": "acct_ostrava",
+      "claims": [
+        { "sentence": "With 1,200 employees, you'd fit our enterprise tier.", "factIds": ["f_or_headcount_web"], "label": "stale" },
+        { "sentence": "Petra, as final approver, can sign this week.", "factIds": ["f_or_approver_1"], "label": "stale" }
+      ]
+    },
+    {
+      "id": "gl_11", "accountId": "acct_ostrava",
+      "claims": [
+        { "sentence": "The pilot cut changeover time by 25%.", "factIds": ["f_or_pilot"], "label": "none" },
+        { "sentence": "For a team of 450, pricing would follow our mid-market plan.", "factIds": ["f_or_headcount_call"], "label": "partial", "why": "headcount backed; plan tier is not" }
+      ]
+    },
+    {
+      "id": "gl_12", "accountId": "acct_ostrava",
+      "claims": [
+        { "sentence": "Thanks for the time today, Petra.", "factIds": [], "factual": false, "label": null },
+        { "sentence": "The pilot ran across 3 production lines.", "factIds": ["f_or_pilot"], "label": "none" },
+        { "sentence": "Tomas has final sign-off on anything over budget.", "factIds": ["f_or_approver_2"], "label": "supported" }
+      ]
+    }
+  ]
+}
